@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Main</title>
@@ -20,33 +20,11 @@
         node: document.getElementById('elm'),
     });
 
-    // const socket = new WebSocket('127.0.0.1:8080');
-    const socket = new WebSocket('ws://127.0.0.1:8080/handshake');
+    const socket = new WebSocket('ws://127.0.0.1:8080');
 
     socket.addEventListener("message", event => {
         console.log(event)
     })
-
-    socket.send('Hi server');
-
-    const b = new ArrayBuffer(9);
-    let view = new Uint8Array(b);
-    view[0] = 48;
-    view[1] = 69;
-    view[2] = 20;
-    view[3] = 73;
-    view[4] = 65;
-    view[5] = 72;
-    view[6] = 76;
-    view[7] = 65;
-    view[8] = 72;
-
-    console.log(b);
-    console.log(view);
-
-    socket.send(b);
-    socket.send(' ');
-    socket.send('blabla');
 
     app.ports.sendMessage.subscribe(
         message => {
