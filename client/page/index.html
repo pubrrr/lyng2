@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main</title>
+    <style>body {
+        padding: 0;
+        margin: 0;
+    }</style>
+
+    <script type='text/javascript' src='index.js'></script>
+</head>
+
+<body>
+
+<pre id="elm"></pre>
+
+<script>
+    const app = Elm.Main.init({
+        node: document.getElementById('elm'),
+    });
+
+    const socket = new WebSocket('ws://127.0.0.1:8080');
+
+    socket.addEventListener("message", event => {
+        console.log(event)
+    })
+
+    app.ports.sendMessage.subscribe(
+        message => {
+            console.log(message);
+            socket.send(message)
+        }
+    )
+</script>
+
+</body>
+</html>
