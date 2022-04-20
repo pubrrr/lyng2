@@ -1,11 +1,20 @@
+use std::collections::HashMap;
+use std::net::{SocketAddr, TcpStream};
 use std::thread::sleep;
 use std::time::Duration;
 
-use websocket::sync::Server;
+use websocket::sync::{Client, Server};
 use websocket::{CloseData, OwnedMessage, WebSocketError, WebSocketResult};
+
+use crate::application::{Application, CommandResult, Context};
+
+mod application;
+mod ast;
 
 fn main() {
     let mut server = Server::bind("127.0.0.1:8080").unwrap();
+
+    let clients: HashMap<SocketAddr, (Client<TcpStream>, Context)> = HashMap::new();
 
     if let Ok(request) = server.accept() {
         let client = request.accept().unwrap();
@@ -15,7 +24,9 @@ fn main() {
 
         let (mut reader, mut writer) = client.split().unwrap();
 
-        'listener: loop {
+        let mut connection_closed = false;
+
+        while !connection_closed {
             for message in reader.incoming_messages() {
                 let process_result = process(message);
 
@@ -24,7 +35,7 @@ fn main() {
 
                     if let OwnedMessage::Close(data) = response {
                         println!("{} disconnected: {:?}", ip, data);
-                        break 'listener;
+                        connection_closed = true;
                     }
                 }
             }
@@ -39,7 +50,16 @@ fn process(message: WebSocketResult<OwnedMessage>) -> Option<OwnedMessage> {
         Ok(message) => match message {
             OwnedMessage::Text(text) => {
                 println!("text: {text}");
-                Some(OwnedMessage::Text(text))
+
+                let mut application = Application::create();
+                let result = application.run(text.clone());
+                let result = match result {
+                    CommandResult::Success(success_response) => success_response,
+                    CommandResult::Error(error_message) => error_message,
+                };
+                println!("result: {result}");
+
+                Some(OwnedMessage::Text(result))
             }
             OwnedMessage::Close(data) => Some(OwnedMessage::Close(data)),
             OwnedMessage::Ping(ping) => Some(OwnedMessage::Pong(ping)),

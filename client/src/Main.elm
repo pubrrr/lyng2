@@ -1,14 +1,17 @@
 port module Main exposing (Msg(..), main, update, view)
 
 import Browser
-import Html exposing (Html, button, div, text)
+import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, contenteditable)
-import Html.Events exposing (on, onClick)
+import Html.Events exposing (on)
 import Json.Decode
 import Json.Encode exposing (Value, string)
 
 
 port sendMessage : Value -> Cmd msg
+
+
+port messageReceiver : (String -> msg) -> Sub msg
 
 
 main =
@@ -21,46 +24,44 @@ main =
 
 
 type Msg
-    = Increment
-    | Decrement
-    | Something Value
+    = Something Value
+    | Incoming String
 
 
 type alias Model =
-    Int
+    String
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Increment ->
-            ( model + 1, sendMessage (string "increment") )
-
-        Decrement ->
-            ( model - 1, sendMessage (string "decrement") )
-
         Something value ->
-            ( model - 1, sendMessage value )
+            ( model, sendMessage value )
+
+        Incoming string ->
+            ( string, Cmd.none )
 
 
 view : Model -> Html Msg
 view model =
     div []
-        [ button [ onClick Decrement ] [ text "-" ]
-        , div [] [ text (String.fromInt model) ]
-        , button [ onClick Increment ] [ text "+" ]
-        , div [ class "editorContainer" ]
-            [ div [ contenteditable True, class "editorWindow", on "input" (Json.Decode.value |> Json.Decode.map (\value -> Something value)) ] [ text "" ]
-            , div [ class "editorWindow" ] [ text "result..." ]
+        [ div [ class "editorContainer" ]
+            [ div
+                [ contenteditable True
+                , class "editorWindow"
+                , on "input" (Json.Decode.value |> Json.Decode.map (\value -> Something value))
+                ]
+                [ text "" ]
+            , div [ class "editorWindow" ] [ text model ]
             ]
         ]
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( 0, Cmd.none )
+    ( "result...", Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    Sub.none
+    messageReceiver Incoming
