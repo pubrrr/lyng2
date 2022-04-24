@@ -53,10 +53,8 @@ fn process(message: WebSocketResult<OwnedMessage>) -> Option<OwnedMessage> {
 
                 let mut application = Application::create();
                 let result = application.run(text.clone());
-                let result = match result {
-                    CommandResult::Success(success_response) => success_response,
-                    CommandResult::Error(error_message) => error_message,
-                };
+
+                let result = ron::to_string(&result).unwrap();
                 println!("result: {result}");
 
                 Some(OwnedMessage::Text(result))

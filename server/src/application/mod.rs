@@ -1,3 +1,6 @@
+use serde::Serialize;
+
+#[derive(Serialize)]
 pub enum CommandResult {
     Success(String),
     Error(String),
@@ -16,3 +19,28 @@ impl Application {
 }
 
 pub struct Context;
+
+#[cfg(test)]
+mod tests {
+    use crate::CommandResult;
+
+    #[test]
+    fn deserialize_success() {
+        let result = CommandResult::Success("success message".to_string());
+
+        let actual = ron::to_string(&result).unwrap();
+
+        let expected = "Success(\"success message\")".to_string();
+        assert_eq!(expected, actual);
+    }
+
+    #[test]
+    fn deserialize_failure() {
+        let result = CommandResult::Error("error message".to_string());
+
+        let actual = ron::to_string(&result).unwrap();
+
+        let expected = "Error(\"error message\")".to_string();
+        assert_eq!(expected, actual);
+    }
+}

@@ -4,6 +4,7 @@ import Browser
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (class, contenteditable)
 import Html.Events exposing (on)
+import Interface exposing (EvaluationResult(..), parseEvaluationResult)
 import Json.Decode
 import Json.Encode exposing (Value, string)
 
@@ -24,7 +25,7 @@ main =
 
 
 type Msg
-    = Something Value
+    = Outgoing Value
     | Incoming String
 
 
@@ -35,11 +36,19 @@ type alias Model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Something value ->
+        Outgoing value ->
             ( model, sendMessage value )
 
         Incoming string ->
-            ( string, Cmd.none )
+            case parseEvaluationResult string of
+                Ok (Success result) ->
+                    ( result, Cmd.none )
+
+                Ok (Error error) ->
+                    ( error, Cmd.none )
+
+                Err error ->
+                    ( error, Cmd.none )
 
 
 view : Model -> Html Msg
@@ -49,7 +58,7 @@ view model =
             [ div
                 [ contenteditable True
                 , class "editorWindow"
-                , on "input" (Json.Decode.value |> Json.Decode.map (\value -> Something value))
+                , on "input" (Json.Decode.value |> Json.Decode.map (\value -> Outgoing value))
                 ]
                 [ text "" ]
             , div [ class "editorWindow" ] [ text model ]
