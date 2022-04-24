@@ -41,18 +41,23 @@ update msg model =
             ( model, sendMessage value )
 
         Incoming string ->
-            case parseEvaluationResult string of
-                Ok (Success result) ->
-                    ( result, Cmd.none )
-
-                Ok (Error error) ->
-                    ( error, Cmd.none )
-
-                Err error ->
-                    ( error, Cmd.none )
+            ( updateModel string, Cmd.none )
 
         ChangeLanguage string ->
             ( model ++ string, Cmd.none )
+
+
+updateModel : String -> Model
+updateModel string =
+    case parseEvaluationResult string of
+        Ok (Success result) ->
+            result
+
+        Ok (Error error) ->
+            error
+
+        Err error ->
+            error
 
 
 view : Model -> Html Msg
