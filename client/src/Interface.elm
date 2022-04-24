@@ -1,6 +1,5 @@
-module Interface exposing (EvaluationResult(..), decodeEvaluationResult, parseEvaluationResult)
+module Interface exposing (EvaluationResult(..), parseEvaluationResult)
 
-import Json.Decode exposing (Decoder, andThen, string)
 import Parser exposing ((|.), (|=), DeadEnd, Parser, oneOf, run, succeed, symbol, variable)
 import Set
 
@@ -8,27 +7,6 @@ import Set
 type EvaluationResult
     = Success String
     | Error String
-
-
-decodeEvaluationResult : Decoder EvaluationResult
-decodeEvaluationResult =
-    Json.Decode.string
-        |> andThen
-            (\string ->
-                let
-                    string1 =
-                        string
-
-                    c =
-                        Debug.log "c " '"'
-                in
-                case parseEvaluationResult (Debug.log "" string1) of
-                    Ok success ->
-                        Json.Decode.succeed success
-
-                    Err deadEnds ->
-                        Json.Decode.fail deadEnds
-            )
 
 
 parseEvaluationResult : String -> Result String EvaluationResult

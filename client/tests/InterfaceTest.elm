@@ -2,9 +2,7 @@ module InterfaceTest exposing (suite)
 
 import Expect exposing (Expectation, equal, err)
 import Fuzz exposing (string)
-import Interface exposing (EvaluationResult(..), decodeEvaluationResult)
-import Json.Decode exposing (decodeValue)
-import Json.Encode
+import Interface exposing (EvaluationResult(..), parseEvaluationResult)
 import Test exposing (..)
 
 
@@ -18,7 +16,7 @@ suite =
                     messageWithoutQuotes =
                         String.replace "\"" "" message
                 in
-                apply decodeEvaluationResult ("Success(\"" ++ messageWithoutQuotes ++ "\")")
+                parseEvaluationResult ("Success(\"" ++ messageWithoutQuotes ++ "\")")
                     |> equal (Ok (Success messageWithoutQuotes))
             )
         , fuzz string
@@ -28,15 +26,11 @@ suite =
                     messageWithoutQuotes =
                         String.replace "\"" "" message
                 in
-                apply decodeEvaluationResult ("Error(\"" ++ messageWithoutQuotes ++ "\")")
+                parseEvaluationResult ("Error(\"" ++ messageWithoutQuotes ++ "\")")
                     |> equal (Ok (Error messageWithoutQuotes))
             )
         , test "parsing error because of misplaced quotes"
-            (\_ -> apply decodeEvaluationResult "Success(\"\"\")" |> err)
+            (\_ -> parseEvaluationResult "Success(\"\"\")" |> err)
         , test "parsing error"
-            (\_ -> apply decodeEvaluationResult "unknown glibberish" |> err)
+            (\_ -> parseEvaluationResult "unknown glibberish" |> err)
         ]
-
-
-apply decoder string =
-    decodeValue decoder (Json.Encode.string string)
