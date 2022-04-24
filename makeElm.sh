@@ -2,6 +2,4 @@
 
 set -xe
 
-cd client 
-
-elm make src/Main.elm --output page/index.js
+(cd client && elm make src/Main.elm --output page/index.js)
