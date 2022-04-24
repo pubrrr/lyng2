@@ -4,4 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+ron = "0.7.0"
+serde = "1.0.136"
 websocket = { version = "0.26.4", features = ["sync"] }

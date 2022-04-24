@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Main</title>
-    <style>body {
-        padding: 0;
-        margin: 0;
-    }</style>
-
+    <link rel="stylesheet" href="style.css">
     <script type='text/javascript' src='index.js'></script>
 </head>
 
@@ -24,12 +20,14 @@
 
     socket.addEventListener("message", event => {
         console.log(event)
-    })
+        console.log(event.data)
+        app.ports.messageReceiver.send(event.data);
+    });
 
     app.ports.sendMessage.subscribe(
         message => {
             console.log(message);
-            socket.send(message)
+            socket.send(message.target.innerText)
         }
     )
 </script>

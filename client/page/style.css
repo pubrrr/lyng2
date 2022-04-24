@@ -1,0 +1,18 @@
+.editorContainer {
+    text-align: center;
+}
+
+.editorWindow {
+    text-align: left;
+
+    display: inline-block;
+    margin: 5vh 10px 10px;
+    padding: 10px;
+    width: 300px;
+    min-width: 30%;
+    max-width: 50%;
+
+    border: solid;
+
+    height: 80vh;
+}
