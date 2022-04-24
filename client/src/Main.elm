@@ -1,9 +1,9 @@
 port module Main exposing (Msg(..), main, update, view)
 
 import Browser
-import Html exposing (Html, div, text)
-import Html.Attributes exposing (class, contenteditable)
-import Html.Events exposing (on)
+import Html exposing (Html, div, option, select, text)
+import Html.Attributes exposing (class, contenteditable, value)
+import Html.Events exposing (on, onInput)
 import Interface exposing (EvaluationResult(..), parseEvaluationResult)
 import Json.Decode
 import Json.Encode exposing (Value, string)
@@ -27,6 +27,7 @@ main =
 type Msg
     = Outgoing Value
     | Incoming String
+    | ChangeLanguage String
 
 
 type alias Model =
@@ -50,11 +51,18 @@ update msg model =
                 Err error ->
                     ( error, Cmd.none )
 
+        ChangeLanguage string ->
+            ( model ++ string, Cmd.none )
+
 
 view : Model -> Html Msg
 view model =
     div []
-        [ div [ class "editorContainer" ]
+        [ select [ onInput ChangeLanguage ]
+            [ option [ value "lyng2-Math" ] [ text "lyng2 - Maths edition" ]
+            , option [ value "other" ] [ text "whatever other fancy language" ]
+            ]
+        , div [ class "editorContainer" ]
             [ div
                 [ contenteditable True
                 , class "editorWindow"
