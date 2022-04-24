@@ -1,3 +1,7 @@
 #!/usr/bin/env bash
 
-(cd server && cargo run)
+set -xe
+
+cd server
+
+cargo run &
