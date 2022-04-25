@@ -1,6 +1,6 @@
-module Ron exposing (Value(..), Variant, fromString, variant)
+module Ron exposing (Value(..), Variant(..), fromString, toString)
 
-import Parser exposing ((|.), (|=), DeadEnd, Parser, oneOf, run, succeed, symbol, variable)
+import Parser exposing ((|.), (|=), DeadEnd, Parser, oneOf, run, spaces, succeed, symbol, variable)
 import Set
 
 
@@ -17,22 +17,40 @@ fromString value input =
                 |> Result.mapError deadEndsToString
 
 
-type alias Variant a =
-    { name : String
-    , constructor : String -> a
-    }
-
-
-variant : (String -> a) -> String -> Variant a
-variant constructor name =
-    { name = name, constructor = constructor }
+type Variant a
+    = Variant0 String a
+    | Variant1 String (String -> a)
+    | Variant2 String (String -> String -> a)
 
 
 variantParser : Variant a -> Parser a
-variantParser theVariant =
-    succeed theVariant.constructor
-        |. symbol theVariant.name
-        |. symbol "("
+variantParser variant =
+    case variant of
+        Variant0 name constructor ->
+            succeed constructor
+                |. symbol name
+
+        Variant1 name constructor ->
+            succeed constructor
+                |. symbol name
+                |. symbol "("
+                |= stringParser
+                |. symbol ")"
+
+        Variant2 name constructor ->
+            succeed constructor
+                |. symbol name
+                |. symbol "("
+                |= stringParser
+                |. symbol ","
+                |. spaces
+                |= stringParser
+                |. symbol ")"
+
+
+stringParser : Parser String
+stringParser =
+    succeed identity
         |. symbol "\""
         |= oneOf
             [ variable
@@ -43,7 +61,6 @@ variantParser theVariant =
             , succeed ""
             ]
         |. symbol "\""
-        |. symbol ")"
 
 
 deadEndsToString : List DeadEnd -> String
@@ -51,3 +68,27 @@ deadEndsToString deadEnds =
     deadEnds
         |> List.map (\deadEnd -> "Parsing Problem: " ++ Debug.toString deadEnd)
         |> String.join ", "
+
+
+toString : Value a -> a -> String
+toString valueDefinition value =
+    case valueDefinition of
+        Enum variants ->
+            variants |> List.map (printOrEmpty value) |> String.concat
+
+
+printOrEmpty : a -> Variant a -> String
+printOrEmpty value variant =
+    case variant of
+        Variant0 name constructor ->
+            if value == constructor then
+                name
+
+            else
+                ""
+
+        Variant1 name constructor ->
+            ""
+
+        Variant2 name constructor ->
+            ""

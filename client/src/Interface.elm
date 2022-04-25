@@ -1,6 +1,6 @@
 module Interface exposing (EvaluationResult(..), parseEvaluationResult)
 
-import Ron exposing (Value(..), fromString, variant)
+import Ron exposing (Value(..), Variant(..), fromString)
 
 
 type EvaluationResult
@@ -10,7 +10,7 @@ type EvaluationResult
 
 ronEvaluationResult : Value EvaluationResult
 ronEvaluationResult =
-    Enum [ variant Success "Success", variant Error "Error" ]
+    Enum [ Variant1 "Success" Success, Variant1 "Error" Error ]
 
 
 parseEvaluationResult : String -> Result String EvaluationResult
