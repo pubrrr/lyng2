@@ -5,7 +5,7 @@ import Set
 
 
 type Value a
-    = Enum (List (VariantWrapper a))
+    = Enum (List (Variant a))
 
 
 fromString : Value a -> String -> Result String a
@@ -17,34 +17,45 @@ fromString value input =
                 |> Result.mapError deadEndsToString
 
 
-type VariantWrapper a
-    = VariantWrapperLeaf a String
-    | OuterVariantDecorator (String -> a) String
-    | InnerVariantDecorator (VariantWrapper (String -> a))
+type Variant a
+    = WithoutFields a String
+    | WithFields (VariantWithFields a)
 
 
-variantFunction : a -> String -> VariantWrapper a
+type VariantWithFields a
+    = OuterVariantDecorator (String -> a) String
+    | InnerVariantDecorator (VariantWithFields (String -> a))
+
+
+variantFunction : a -> String -> Variant a
 variantFunction value name =
-    VariantWrapperLeaf value name
+    WithoutFields value name
 
 
-withField : VariantWrapper (String -> b) -> VariantWrapper b
+withField : Variant (String -> b) -> Variant b
 withField variant =
     case variant of
-        VariantWrapperLeaf a string ->
-            OuterVariantDecorator a string
+        WithoutFields a string ->
+            WithFields (OuterVariantDecorator a string)
 
-        _ ->
-            InnerVariantDecorator variant
+        WithFields withFields ->
+            WithFields (InnerVariantDecorator withFields)
 
 
-variantParser : VariantWrapper a -> Parser a
+variantParser : Variant a -> Parser a
 variantParser variant =
     case variant of
-        VariantWrapperLeaf constructor name ->
+        WithoutFields constructor name ->
             succeed constructor
                 |. symbol name
 
+        WithFields variantWithFields ->
+            variantParserWithFieldsParser variantWithFields
+
+
+variantParserWithFieldsParser : VariantWithFields a -> Parser a
+variantParserWithFieldsParser variantWithFields =
+    case variantWithFields of
         OuterVariantDecorator constructor name ->
             succeed constructor
                 |. symbol name
@@ -53,7 +64,7 @@ variantParser variant =
                 |. symbol ")"
 
         InnerVariantDecorator wrapped ->
-            variantParser2 wrapped
+            flip wrapped
                 |. symbol ","
                 |= stringParser
                 |. oneOf [ symbol ",", succeed () ]
@@ -61,13 +72,9 @@ variantParser variant =
                 |. symbol ")"
 
 
-variantParser2 : VariantWrapper (String -> a) -> Parser (String -> a)
-variantParser2 variant =
+flip : VariantWithFields (String -> a) -> Parser (String -> a)
+flip variant =
     case variant of
-        VariantWrapperLeaf constructor name ->
-            succeed constructor
-                |. symbol name
-
         OuterVariantDecorator constructor name ->
             succeed constructor
                 |. symbol name
@@ -75,19 +82,15 @@ variantParser2 variant =
                 |= stringParser
 
         InnerVariantDecorator wrapped ->
-            variantParser3 wrapped
+            flop wrapped
                 |. symbol ","
                 |. spaces
                 |= stringParser
 
 
-variantParser3 : VariantWrapper (String -> a) -> Parser (String -> a)
-variantParser3 variant =
+flop : VariantWithFields (String -> a) -> Parser (String -> a)
+flop variant =
     case variant of
-        VariantWrapperLeaf constructor name ->
-            succeed constructor
-                |. symbol name
-
         OuterVariantDecorator constructor name ->
             succeed constructor
                 |. symbol name
@@ -95,7 +98,7 @@ variantParser3 variant =
                 |= stringParser
 
         InnerVariantDecorator wrapped ->
-            variantParser2 wrapped
+            flip wrapped
                 |. symbol ","
                 |. spaces
                 |= stringParser
