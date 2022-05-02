@@ -1,14 +1,14 @@
-module Ron exposing (Value(..), fromString, toString, variantFunction, withField)
+module Ron exposing (Value(..), bool, fromString, string, variant, withField)
 
 import Parser exposing ((|.), (|=), DeadEnd, Parser, Problem(..), oneOf, run, spaces, succeed, symbol, variable)
 import Set
 
 
-type Value a
-    = Enum (List (Variant a))
+type Value value
+    = Enum (List (Variant value))
 
 
-fromString : Value a -> String -> Result String a
+fromString : Value value -> String -> Result String value
 fromString value input =
     case value of
         Enum variants ->
@@ -17,95 +17,58 @@ fromString value input =
                 |> Result.mapError deadEndsToString
 
 
-type Variant a
-    = WithoutFields a String
-    | WithFields (VariantWithFields a)
+type Variant value
+    = WithoutFields value String
+    | WithFields (Parser value)
 
 
-type VariantWithFields a
-    = OuterVariantDecorator (String -> a) String
-    | InnerVariantDecorator (VariantWithFields (String -> a))
-
-
-variantFunction : a -> String -> Variant a
-variantFunction value name =
+variant : constructor -> String -> Variant constructor
+variant value name =
     WithoutFields value name
 
 
-withField : Variant (String -> b) -> Variant b
-withField variant =
-    case variant of
-        WithoutFields a string ->
-            WithFields (OuterVariantDecorator a string)
+withField : Parser field -> Variant (field -> partialConstructor) -> Variant partialConstructor
+withField fieldParser variant_ =
+    case variant_ of
+        WithoutFields value name ->
+            WithFields <|
+                succeed value
+                    |. symbol name
+                    |. symbol "("
+                    |= fieldParser
 
         WithFields withFields ->
-            WithFields (InnerVariantDecorator withFields)
+            WithFields <|
+                withFields
+                    |. symbol ","
+                    |. spaces
+                    |= fieldParser
 
 
-variantParser : Variant a -> Parser a
-variantParser variant =
-    case variant of
+variantParser : Variant value -> Parser value
+variantParser variant_ =
+    case variant_ of
         WithoutFields constructor name ->
             succeed constructor
                 |. symbol name
 
         WithFields variantWithFields ->
-            variantParserWithFieldsParser variantWithFields
-
-
-variantParserWithFieldsParser : VariantWithFields a -> Parser a
-variantParserWithFieldsParser variantWithFields =
-    case variantWithFields of
-        OuterVariantDecorator constructor name ->
-            succeed constructor
-                |. symbol name
-                |. symbol "("
-                |= stringParser
-                |. symbol ")"
-
-        InnerVariantDecorator wrapped ->
-            flip wrapped
-                |. symbol ","
-                |= stringParser
+            variantWithFields
                 |. oneOf [ symbol ",", succeed () ]
                 |. spaces
                 |. symbol ")"
 
 
-flip : VariantWithFields (String -> a) -> Parser (String -> a)
-flip variant =
-    case variant of
-        OuterVariantDecorator constructor name ->
-            succeed constructor
-                |. symbol name
-                |. symbol "("
-                |= stringParser
-
-        InnerVariantDecorator wrapped ->
-            flop wrapped
-                |. symbol ","
-                |. spaces
-                |= stringParser
+bool : Parser Bool
+bool =
+    oneOf
+        [ succeed True |. symbol "true"
+        , succeed False |. symbol "false"
+        ]
 
 
-flop : VariantWithFields (String -> a) -> Parser (String -> a)
-flop variant =
-    case variant of
-        OuterVariantDecorator constructor name ->
-            succeed constructor
-                |. symbol name
-                |. symbol "("
-                |= stringParser
-
-        InnerVariantDecorator wrapped ->
-            flip wrapped
-                |. symbol ","
-                |. spaces
-                |= stringParser
-
-
-stringParser : Parser String
-stringParser =
+string : Parser String
+string =
     succeed identity
         |. spaces
         |. symbol stringDelimiter
@@ -131,40 +94,3 @@ deadEndsToString deadEnds =
     deadEnds
         |> List.map (\deadEnd -> "Parsing Problem: " ++ Debug.toString deadEnd)
         |> String.join ", "
-
-
-toString : Value a -> a -> String
-toString valueDefinition value =
-    "todo"
-
-
-
---case valueDefinition of
---    Enum variants ->
---        variants |> List.map (printOrEmpty value) |> String.concat
---printOrEmpty : a -> VariantWrapper a -> String
---printOrEmpty value variant =
---    case variant of
---        VariantWrapperLeaf constructor string ->
---            if value == constructor then
---                string
---
---            else
---                ""
---
---        VariantDecorator wrapped ->
---            printOrEmpty2 (\_ -> value) wrapped
---
---
---printOrEmpty2 : (String -> a) -> VariantWrapper (String -> a) -> String
---printOrEmpty2 value variant =
---    case variant of
---        VariantWrapperLeaf constructor string ->
---            if value == constructor then
---                string
---
---            else
---                ""
---
---        VariantDecorator wrapped ->
---            printOrEmpty (\_ -> value) wrapped
