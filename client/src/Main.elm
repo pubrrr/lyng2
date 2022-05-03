@@ -1,15 +1,15 @@
 port module Main exposing (Msg(..), main, update, view)
 
 import Browser
-import Html exposing (Html, div, option, select, text)
+import Html exposing (Html, button, div, option, select, text)
 import Html.Attributes exposing (class, contenteditable, value)
-import Html.Events exposing (on, onInput)
+import Html.Events exposing (on, onClick, onInput)
 import Interface exposing (EvaluationResult(..), parseEvaluationResult)
-import Json.Decode
-import Json.Encode exposing (Value, string)
+import Json.Decode as JD
+import Ron exposing (Value(..), fromString, variant)
 
 
-port sendMessage : Value -> Cmd msg
+port sendMessage : String -> Cmd msg
 
 
 port messageReceiver : (String -> msg) -> Sub msg
@@ -25,30 +25,60 @@ main =
 
 
 type Msg
-    = Outgoing Value
-    | Incoming String
+    = SetEditorContent String
+    | SetViewContent String
     | ChangeLanguage String
+    | SendEditorContent
 
 
 type alias Model =
-    String
+    { editorContent : String
+    , viewContent : String
+    , language : Language
+    }
+
+
+type Language
+    = Lyng2Math
+    | Other
+
+
+languageParser : Value Language
+languageParser =
+    Enum
+        [ variant Lyng2Math lyng2MathsEdition
+        , variant Other otherLanguage
+        ]
+
+
+lyng2MathsEdition =
+    "Lyng2MathsEdition"
+
+
+{-| TODO clean this up and replace by a proper language
+-}
+otherLanguage =
+    "other"
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Outgoing value ->
-            ( model, sendMessage value )
+        SetEditorContent value ->
+            ( { model | editorContent = value }, Cmd.none )
 
-        Incoming string ->
-            ( updateModel string, Cmd.none )
+        SetViewContent string ->
+            ( { model | viewContent = updateViewContent string }, Cmd.none )
 
-        ChangeLanguage string ->
-            ( model ++ string, Cmd.none )
+        ChangeLanguage language ->
+            ( model |> updateLanguage language, Cmd.none )
+
+        SendEditorContent ->
+            ( model, sendMessage model.editorContent )
 
 
-updateModel : String -> Model
-updateModel string =
+updateViewContent : String -> String
+updateViewContent string =
     case parseEvaluationResult string of
         Ok (Success result) ->
             result
@@ -60,30 +90,41 @@ updateModel string =
             error
 
 
+updateLanguage : String -> Model -> Model
+updateLanguage string model =
+    case fromString languageParser string of
+        Ok language ->
+            { model | language = language }
+
+        Err error ->
+            { model | viewContent = "Selected unknown language \"" ++ string ++ "\": " ++ error }
+
+
 view : Model -> Html Msg
 view model =
     div []
         [ select [ onInput ChangeLanguage ]
-            [ option [ value "lyng2-Math" ] [ text "lyng2 - Maths edition" ]
-            , option [ value "other" ] [ text "whatever other fancy language" ]
+            [ option [ value lyng2MathsEdition ] [ text "lyng2 - Maths edition" ]
+            , option [ value otherLanguage ] [ text "whatever other fancy language" ]
             ]
+        , button [ onClick SendEditorContent ] [ text "send" ]
         , div [ class "editorContainer" ]
             [ div
                 [ contenteditable True
                 , class "editorWindow"
-                , on "input" (Json.Decode.value |> Json.Decode.map (\value -> Outgoing value))
+                , on "input" (JD.at [ "target", "innerText" ] JD.string |> JD.map SetEditorContent)
                 ]
                 [ text "" ]
-            , div [ class "editorWindow" ] [ text model ]
+            , div [ class "editorWindow" ] [ text model.viewContent ]
             ]
         ]
 
 
 init : () -> ( Model, Cmd Msg )
 init _ =
-    ( "result...", Cmd.none )
+    ( { editorContent = "", viewContent = "result...", language = Lyng2Math }, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions _ =
-    messageReceiver Incoming
+    messageReceiver SetViewContent
