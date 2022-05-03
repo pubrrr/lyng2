@@ -1,9 +1,9 @@
 port module Main exposing (Msg(..), main, update, view)
 
 import Browser
-import Html exposing (Html, div, option, select, text)
+import Html exposing (Html, button, div, option, select, text)
 import Html.Attributes exposing (class, contenteditable, value)
-import Html.Events exposing (on, onInput)
+import Html.Events exposing (on, onClick, onInput)
 import Interface exposing (EvaluationResult(..), parseEvaluationResult)
 import Json.Decode as JD
 import Ron exposing (Value(..), fromString, variant)
@@ -28,6 +28,7 @@ type Msg
     = SetEditorContent String
     | SetViewContent String
     | ChangeLanguage String
+    | SendEditorContent
 
 
 type alias Model =
@@ -64,13 +65,16 @@ update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
         SetEditorContent value ->
-            ( { model | editorContent = value }, sendMessage value )
+            ( { model | editorContent = value }, Cmd.none )
 
         SetViewContent string ->
             ( { model | viewContent = updateViewContent string }, Cmd.none )
 
         ChangeLanguage language ->
             ( model |> updateLanguage language, Cmd.none )
+
+        SendEditorContent ->
+            ( model, sendMessage model.editorContent )
 
 
 updateViewContent : String -> String
@@ -103,6 +107,7 @@ view model =
             [ option [ value lyng2MathsEdition ] [ text "lyng2 - Maths edition" ]
             , option [ value otherLanguage ] [ text "whatever other fancy language" ]
             ]
+        , button [ onClick SendEditorContent ] [ text "send" ]
         , div [ class "editorContainer" ]
             [ div
                 [ contenteditable True
