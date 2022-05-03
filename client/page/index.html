@@ -26,7 +26,7 @@
     app.ports.sendMessage.subscribe(
         message => {
             console.log(message);
-            socket.send(message.target.innerText)
+            socket.send(message)
         }
     )
 </script>
