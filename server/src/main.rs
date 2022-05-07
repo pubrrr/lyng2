@@ -6,7 +6,7 @@ use std::time::Duration;
 use websocket::sync::{Client, Server};
 use websocket::{CloseData, OwnedMessage, WebSocketError, WebSocketResult};
 
-use crate::application::{Application, CommandResult, Context};
+use crate::application::{Application, Context};
 
 mod application;
 mod ast;
@@ -14,7 +14,7 @@ mod ast;
 fn main() {
     let mut server = Server::bind("127.0.0.1:8080").unwrap();
 
-    let clients: HashMap<SocketAddr, (Client<TcpStream>, Context)> = HashMap::new();
+    let _clients: HashMap<SocketAddr, (Client<TcpStream>, Context)> = HashMap::new();
 
     if let Ok(request) = server.accept() {
         let client = request.accept().unwrap();
@@ -52,7 +52,7 @@ fn process(message: WebSocketResult<OwnedMessage>) -> Option<OwnedMessage> {
                 println!("text: {text}");
 
                 let mut application = Application::create();
-                let result = application.run(text.clone());
+                let result = application.run(text);
 
                 let result = ron::to_string(&result).unwrap();
                 println!("result: {result}");

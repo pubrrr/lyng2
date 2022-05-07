@@ -3,6 +3,7 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub enum CommandResult {
     Success(String),
+    #[allow(dead_code)]
     Error(String),
 }
 
@@ -22,7 +23,7 @@ pub struct Context;
 
 #[cfg(test)]
 mod tests {
-    use crate::CommandResult;
+    use crate::application::CommandResult;
 
     #[test]
     fn deserialize_success() {
