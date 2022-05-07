@@ -1,6 +1,6 @@
 module Ron exposing (Value(..), bool, fromString, string, variant, withField)
 
-import Parser exposing ((|.), (|=), DeadEnd, Parser, Problem(..), oneOf, run, spaces, succeed, symbol, variable)
+import Parser exposing ((|.), (|=), DeadEnd, Parser, oneOf, run, spaces, succeed, symbol, variable)
 import Set
 
 

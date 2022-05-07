@@ -1,6 +1,6 @@
 module InterfaceTest exposing (suite)
 
-import Expect exposing (Expectation, equal, err)
+import Expect exposing (equal, err)
 import Fuzz exposing (string)
 import Interface exposing (EvaluationResult(..), parseEvaluationResult)
 import Test exposing (..)

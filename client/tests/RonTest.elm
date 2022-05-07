@@ -1,6 +1,6 @@
 module RonTest exposing (suite)
 
-import Expect exposing (Expectation, equal)
+import Expect exposing (equal)
 import Parser exposing (int)
 import Ron exposing (Value(..), bool, fromString, string, variant, withField)
 import Test exposing (..)

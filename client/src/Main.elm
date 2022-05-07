@@ -1,4 +1,4 @@
-port module Main exposing (Msg(..), main, update, view)
+port module Main exposing (Msg(..), main)
 
 import Browser
 import Html exposing (Html, button, div, option, select, text)
