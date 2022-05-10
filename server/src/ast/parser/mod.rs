@@ -86,7 +86,7 @@ pub fn parse(input: String) -> Result<Vec<LocalizedSyntaxNode>, ErrorMessage> {
 }
 
 fn parse_expression(input: CharWrapper) -> ParseResult {
-    if input.clone().filter(|char| !char.is_whitespace()).count() == 0 {
+    if !input.clone().any(|char| !char.is_whitespace()) {
         return Err(ErrorMessage::empty_expression(format!(
             "expected expression, got '{}'",
             input.chars.collect::<String>()
@@ -106,26 +106,33 @@ fn parse_expression(input: CharWrapper) -> ParseResult {
             x
         });
 
-    let build_tree =
-        move |(mut x, y): (LocalizedSyntaxNode, Vec<(CharWrapper, LocalizedSyntaxNode)>),
-              rest: CharWrapper| {
-            for (operator, syntax_tree) in y {
-                println!("{:?}  {:?}", operator, rest);
-                let op = &*operator.chars.collect::<String>();
-                match op {
-                    "+" => x = LocalizedSyntaxNode::add(operator.end, x, syntax_tree),
-                    "-" => x = LocalizedSyntaxNode::sub(operator.end, x, syntax_tree),
-                    _ => panic!("this should never happen"),
-                }
-            }
-            x
-        };
+    let summand_and_operator_parser =
+        RepeatedParser::zero_or_more(Pair::new(parse_term, add_or_subtract));
 
-    parse_term
-        .separated_by(add_or_subtract)
-        .with_error(|error, _| error.fold(identity, |separator_error| separator_error.reduce()))
-        .peek_and_transform(build_tree)
+    Pair::new(summand_and_operator_parser, parse_term)
+        .with_error(|error, _| error.fold(|inner_error| inner_error.reduce(), identity))
+        .transform(|(summands, result)| combine_to_tree(summands, result))
         .parse(input)
+}
+
+fn combine_to_tree(
+    mut summands_and_operators: Vec<(LocalizedSyntaxNode, CharWrapper)>,
+    last_summand: LocalizedSyntaxNode,
+) -> LocalizedSyntaxNode {
+    if summands_and_operators.is_empty() {
+        return last_summand;
+    }
+
+    let (second_last_summand, operator) = summands_and_operators.pop().unwrap();
+
+    let lhs = combine_to_tree(summands_and_operators, second_last_summand);
+
+    let op = operator.chars.collect::<String>();
+    match &*op {
+        "+" => LocalizedSyntaxNode::add(operator.end, lhs, last_summand),
+        "-" => LocalizedSyntaxNode::sub(operator.end, lhs, last_summand),
+        _ => unreachable!("{}", op),
+    }
 }
 
 fn parse_term(input: CharWrapper) -> ParseResult {

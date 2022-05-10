@@ -70,10 +70,6 @@ impl ErrorMessage {
         ErrorMessage::new(message, 0, Localization::new())
     }
 
-    pub fn missing_operator(message: String) -> Self {
-        ErrorMessage::new(message, 0, Localization::new())
-    }
-
     pub fn missing_tuple_comma() -> Self {
         ErrorMessage::new("expected ',' for tuple".to_string(), 0, Localization::new())
     }
