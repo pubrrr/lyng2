@@ -7,3 +7,5 @@ edition = "2021"
 ron = "0.7.0"
 serde = "1.0.136"
 websocket = { version = "0.26.4", features = ["sync"] }
+bigdecimal = "0.3.0"
+parser_combinator = { git = "https://github.com/ekinimo/Kirby", branch = 'main' }

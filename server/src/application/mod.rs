@@ -1,9 +1,9 @@
+use crate::ast::parser::parse;
 use serde::Serialize;
 
 #[derive(Serialize)]
 pub enum CommandResult {
     Success(String),
-    #[allow(dead_code)]
     Error(String),
 }
 
@@ -14,8 +14,11 @@ impl Application {
         Application
     }
 
-    pub fn run(&mut self, _input: String) -> CommandResult {
-        CommandResult::Success(String::from("42"))
+    pub fn run(&mut self, input: String) -> CommandResult {
+        match parse(input) {
+            Ok(result) => CommandResult::Success(format!("{result:#?}")),
+            Err(error) => CommandResult::Error(error.message),
+        }
     }
 }
 
