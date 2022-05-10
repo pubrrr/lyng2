@@ -256,6 +256,18 @@ mod mul {
         );
         assert_eq!(Localization::at(0, 1), message.localization);
     }
+
+    #[test]
+    fn mul_with_missing_second_factor() {
+        let result = parse("123 * ".to_string());
+
+        let message = result.unwrap_err();
+        assert_eq!(
+            "Syntax Error: expected '-' or '(' or a number, got ''".to_string(),
+            message.message
+        );
+        assert_eq!(Localization::at(0, 6), message.localization);
+    }
 }
 
 mod div {
@@ -302,6 +314,18 @@ mod div {
             message.message
         );
         assert_eq!(Localization::at(0, 1), message.localization);
+    }
+
+    #[test]
+    fn div_with_missing_divisor() {
+        let result = parse("123 / ".to_string());
+
+        let message = result.unwrap_err();
+        assert_eq!(
+            "Syntax Error: expected '-' or '(' or a number, got ''".to_string(),
+            message.message
+        );
+        assert_eq!(Localization::at(0, 6), message.localization);
     }
 }
 

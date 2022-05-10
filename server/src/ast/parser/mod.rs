@@ -6,7 +6,7 @@ use bigdecimal::BigDecimal;
 use parser_combinator::either::Either;
 use parser_combinator::either::Either3;
 use parser_combinator::pair::Pair;
-use parser_combinator::parser::{match_anything, match_character, match_literal};
+use parser_combinator::parser::{match_anything, match_character, match_literal, Parser};
 use parser_combinator::repeated::RepeatedParser;
 use parser_combinator::triple::Triple;
 use parser_combinator::*;
@@ -57,6 +57,80 @@ impl<'a> Iterator for CharWrapper<'a> {
     }
 }
 
+trait Operator {
+    fn parser<'a>() -> Parser<'a, CharWrapper<'a>, CharWrapper<'a>, ErrorMessage>;
+
+    fn combine(
+        operator: CharWrapper,
+        lhs: LocalizedSyntaxNode,
+        rhs: LocalizedSyntaxNode,
+    ) -> LocalizedSyntaxNode;
+}
+
+struct PlusAndMinus;
+
+impl Operator for PlusAndMinus {
+    fn parser<'a>() -> Parser<'a, CharWrapper<'a>, CharWrapper<'a>, ErrorMessage> {
+        match_literal(CharWrapper::new("+".chars()))
+            .or_else(match_literal(CharWrapper::new("-".chars())))
+            .with_error(|_, input: CharWrapper| {
+                ErrorMessage::term_failed(format!(
+                    "expected operator + or -, got {}",
+                    input.chars.collect::<String>()
+                ))
+            })
+            .peek_and_transform(|mut x, y| {
+                x.end = y.start;
+                x
+            })
+    }
+
+    fn combine(
+        operator: CharWrapper,
+        lhs: LocalizedSyntaxNode,
+        rhs: LocalizedSyntaxNode,
+    ) -> LocalizedSyntaxNode {
+        let op = operator.chars.collect::<String>();
+        match &*op {
+            "+" => LocalizedSyntaxNode::add(operator.end, lhs, rhs),
+            "-" => LocalizedSyntaxNode::sub(operator.end, lhs, rhs),
+            _ => unreachable!("{}", op),
+        }
+    }
+}
+
+struct MulAndDiv;
+
+impl Operator for MulAndDiv {
+    fn parser<'a>() -> Parser<'a, CharWrapper<'a>, CharWrapper<'a>, ErrorMessage> {
+        match_literal(CharWrapper::new("*".chars()))
+            .or_else(match_literal(CharWrapper::new("/".chars())))
+            .with_error(|_, input: CharWrapper| {
+                ErrorMessage::term_failed(format!(
+                    "expected operator + or -, got {}",
+                    input.chars.collect::<String>()
+                ))
+            })
+            .peek_and_transform(|mut x, y| {
+                x.end = y.start;
+                x
+            })
+    }
+
+    fn combine(
+        operator: CharWrapper,
+        lhs: LocalizedSyntaxNode,
+        rhs: LocalizedSyntaxNode,
+    ) -> LocalizedSyntaxNode {
+        let op = operator.chars.collect::<String>();
+        match &*op {
+            "*" => LocalizedSyntaxNode::mul(operator.end, lhs, rhs),
+            "/" => LocalizedSyntaxNode::div(operator.end, lhs, rhs),
+            _ => unreachable!("{}", op),
+        }
+    }
+}
+
 pub fn parse(input: String) -> Result<Vec<LocalizedSyntaxNode>, ErrorMessage> {
     let (result, leftover) = parse_expression
         .separated_by(match_character(';'))
@@ -93,29 +167,16 @@ fn parse_expression(input: CharWrapper) -> ParseResult {
         )));
     }
 
-    let add_or_subtract = match_literal(CharWrapper::new("+".chars()))
-        .or_else(match_literal(CharWrapper::new("-".chars())))
-        .with_error(|_, input: CharWrapper| {
-            ErrorMessage::term_failed(format!(
-                "expected operator + or -, got {}",
-                input.chars.collect::<String>()
-            ))
-        })
-        .peek_and_transform(|mut x, y| {
-            x.end = y.start;
-            x
-        });
-
     let summand_and_operator_parser =
-        RepeatedParser::zero_or_more(Pair::new(parse_term, add_or_subtract));
+        RepeatedParser::zero_or_more(Pair::new(parse_term, PlusAndMinus::parser()));
 
     Pair::new(summand_and_operator_parser, parse_term)
         .with_error(|error, _| error.fold(|inner_error| inner_error.reduce(), identity))
-        .transform(|(summands, result)| combine_to_tree(summands, result))
+        .transform(|(summands, result)| combine_to_tree::<PlusAndMinus>(summands, result))
         .parse(input)
 }
 
-fn combine_to_tree(
+fn combine_to_tree<T: Operator>(
     mut summands_and_operators: Vec<(LocalizedSyntaxNode, CharWrapper)>,
     last_summand: LocalizedSyntaxNode,
 ) -> LocalizedSyntaxNode {
@@ -125,48 +186,18 @@ fn combine_to_tree(
 
     let (second_last_summand, operator) = summands_and_operators.pop().unwrap();
 
-    let lhs = combine_to_tree(summands_and_operators, second_last_summand);
+    let lhs = combine_to_tree::<T>(summands_and_operators, second_last_summand);
 
-    let op = operator.chars.collect::<String>();
-    match &*op {
-        "+" => LocalizedSyntaxNode::add(operator.end, lhs, last_summand),
-        "-" => LocalizedSyntaxNode::sub(operator.end, lhs, last_summand),
-        _ => unreachable!("{}", op),
-    }
+    T::combine(operator, lhs, last_summand)
 }
 
 fn parse_term(input: CharWrapper) -> ParseResult {
-    let multiply_or_divide = match_literal(CharWrapper::new("*".chars()))
-        .or_else(match_literal(CharWrapper::new("/".chars())))
-        .with_error(|_, input: CharWrapper| {
-            ErrorMessage::term_failed(format!(
-                "expected operator * or /, got {}",
-                input.collect::<String>()
-            ))
-        })
-        .peek_and_transform(|mut x, y| {
-            x.end = y.start;
-            x
-        });
+    let summand_and_operator_parser =
+        RepeatedParser::zero_or_more(Pair::new(parse_exponent, MulAndDiv::parser()));
 
-    let build_tree =
-        move |(mut x, y): (LocalizedSyntaxNode, Vec<(CharWrapper, LocalizedSyntaxNode)>)| {
-            for (operator, syntax_tree) in y {
-                println!("{:?}", operator);
-                let op = &*operator.chars.collect::<String>();
-                match op {
-                    "*" => x = LocalizedSyntaxNode::mul(operator.end, x, syntax_tree),
-                    "/" => x = LocalizedSyntaxNode::div(operator.end, x, syntax_tree),
-                    _ => panic!("this should never happen"),
-                }
-            }
-            x
-        };
-
-    parse_exponent
-        .separated_by(multiply_or_divide)
-        .with_error(|error, _| error.fold(identity, |separator_error| separator_error.reduce()))
-        .transform(build_tree)
+    Pair::new(summand_and_operator_parser, parse_exponent)
+        .with_error(|error, _| error.fold(|inner_error| inner_error.reduce(), identity))
+        .transform(|(summands, result)| combine_to_tree::<MulAndDiv>(summands, result))
         .parse(input)
 }
 
