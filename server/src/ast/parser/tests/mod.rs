@@ -87,12 +87,14 @@ impl LocalizedSyntaxNode {
             (SyntaxTree::Number(actual), NodeMatcher::Number(expected)) => {
                 assert_eq!(*actual, expected)
             }
-            (SyntaxTree::Sum(inner), NodeMatcher::Sum(expected_left, expected_right))
+            (
+                SyntaxTree::Sum(actual_left, actual_right),
+                NodeMatcher::Sum(expected_left, expected_right),
+            )
             | (
-                SyntaxTree::Subtraction(inner),
+                SyntaxTree::Subtraction(actual_left, actual_right),
                 NodeMatcher::Subtraction(expected_left, expected_right),
             ) => {
-                let (actual_left, actual_right) = &**inner;
                 actual_left.assert_matches(*expected_left);
                 actual_right.assert_matches(*expected_right);
             }
