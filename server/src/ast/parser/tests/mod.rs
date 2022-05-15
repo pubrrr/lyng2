@@ -1,4 +1,4 @@
-use std::ops::{Add, Sub};
+use std::ops::{Add, Div, Mul, Sub};
 
 use bigdecimal::BigDecimal;
 
@@ -58,11 +58,35 @@ impl Sub for SyntaxTreeMatcher {
     }
 }
 
+impl Mul for SyntaxTreeMatcher {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        SyntaxTreeMatcher {
+            localization_matcher: None,
+            node_matcher: NodeMatcher::Product(Box::from(self), Box::from(rhs)),
+        }
+    }
+}
+
+impl Div for SyntaxTreeMatcher {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        SyntaxTreeMatcher {
+            localization_matcher: None,
+            node_matcher: NodeMatcher::Division(Box::from(self), Box::from(rhs)),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 enum NodeMatcher {
     Number(BigDecimal),
     Sum(Box<SyntaxTreeMatcher>, Box<SyntaxTreeMatcher>),
     Subtraction(Box<SyntaxTreeMatcher>, Box<SyntaxTreeMatcher>),
+    Product(Box<SyntaxTreeMatcher>, Box<SyntaxTreeMatcher>),
+    Division(Box<SyntaxTreeMatcher>, Box<SyntaxTreeMatcher>),
 }
 
 fn number<N: Into<BigDecimal>>(number: N) -> SyntaxTreeMatcher {
@@ -94,6 +118,14 @@ impl LocalizedSyntaxNode {
             | (
                 SyntaxTree::Subtraction(actual_left, actual_right),
                 NodeMatcher::Subtraction(expected_left, expected_right),
+            )
+            | (
+                SyntaxTree::Product(actual_left, actual_right),
+                NodeMatcher::Product(expected_left, expected_right),
+            )
+            | (
+                SyntaxTree::Division(actual_left, actual_right),
+                NodeMatcher::Division(expected_left, expected_right),
             ) => {
                 actual_left.assert_matches(*expected_left);
                 actual_right.assert_matches(*expected_right);
@@ -434,6 +466,57 @@ mod subtract {
             message.message
         );
         assert_eq!(Localization::at(0, 6), message.localization);
+    }
+}
+
+mod parenthesis {
+    use crate::ast::parser::parse;
+    use crate::ast::parser::tests::number;
+    use crate::ast::Localization;
+
+    #[test]
+    fn successfully_parses_expression_in_parenthesis() {
+        let result = parse("(1+2)".to_string());
+
+        let expected = number(1) + number(2);
+
+        expected.assert_matches(result);
+    }
+
+    // #[test]
+    // fn missing_closing_parenthesis() {
+    //     let result = parse("(1+2".to_string());
+    //
+    //     let message = result.unwrap_err();
+    //     assert_eq!("Syntax Error: missing closing parenthesis", message.message);
+    //     assert_eq!(Localization::at(0, 4), message.localization);
+    // }
+
+    #[test]
+    fn missing_opening_parenthesis() {
+        let result = parse("1+2)".to_string());
+
+        let message = result.unwrap_err();
+        assert_eq!("expected end of input, ')' was left", message.message);
+        assert_eq!(Localization::at(0, 3), message.localization);
+    }
+}
+
+mod multiple_lines {
+    use crate::ast::parser::parse;
+    use crate::ast::parser::tests::number;
+
+    #[test]
+    fn multiple_lines() {
+        let result = parse("1 + 2;5 / 7".to_string());
+
+        let expected_first_line = (number(1).at(0) + number(2).at(3)).at(2);
+        let expected_second_line = (number(5).at(5) / number(7).at(9)).at(8);
+
+        let actual = result.unwrap();
+        assert_eq!(2, actual.len());
+        actual[0].assert_matches(expected_first_line);
+        actual[1].assert_matches(expected_second_line);
     }
 }
 

@@ -51,37 +51,29 @@ impl ErrorMessage {
         ErrorMessage::new(message, 15, localization)
     }
 
-    pub fn expression_failed(message: String) -> Self {
-        ErrorMessage::new(message, 20, todo!())
-    }
-
     pub fn exponentiation_failed(message: String, localization: Localization) -> Self {
         ErrorMessage::new(message, 25, localization)
     }
 
-    pub fn expected_end_of_input(message: String) -> Self {
-        ErrorMessage::new(message, 110, todo!())
-    }
+    // pub fn assignment_error(message: String) -> Self {
+    //     ErrorMessage::new(message, 120, todo!())
+    // }
+    //
+    // pub fn no_assignment_found(message: String) -> Self {
+    //     ErrorMessage::new(message, 0, todo!())
+    // }
 
-    pub fn assignment_error(message: String) -> Self {
-        ErrorMessage::new(message, 120, todo!())
-    }
+    // pub fn missing_tuple_comma() -> Self {
+    //     ErrorMessage::new("expected ',' for tuple".to_string(), 0, Localization::new())
+    // }
 
-    pub fn no_assignment_found(message: String) -> Self {
-        ErrorMessage::new(message, 0, todo!())
-    }
-
-    pub fn missing_tuple_comma() -> Self {
-        ErrorMessage::new("expected ',' for tuple".to_string(), 0, Localization::new())
-    }
-
-    pub fn empty_function_arguments(input: Chars) -> Self {
-        ErrorMessage::new(
-            format!("expected function arguments, got {}", input.as_str()),
-            80,
-            todo!(),
-        )
-    }
+    // pub fn empty_function_arguments(input: Chars) -> Self {
+    //     ErrorMessage::new(
+    //         format!("expected function arguments, got {}", input.as_str()),
+    //         80,
+    //         todo!(),
+    //     )
+    // }
 
     pub fn leftover(leftover: String, localization: Localization) -> Self {
         ErrorMessage {
@@ -139,7 +131,7 @@ mod tests {
 
     #[test]
     fn most_important_of_one() {
-        let error_message = ErrorMessage::missing_tuple_comma();
+        let error_message = ErrorMessage::new("message".to_string(), 1, Localization::new());
 
         let result = most_important_of!(error_message.clone());
 
