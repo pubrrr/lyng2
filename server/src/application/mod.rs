@@ -1,5 +1,6 @@
-use crate::ast::parser::parse;
 use serde::Serialize;
+
+use crate::ast::parser::parse;
 
 #[derive(Serialize)]
 pub enum CommandResult {
@@ -16,7 +17,13 @@ impl Application {
 
     pub fn run(&mut self, input: String) -> CommandResult {
         match parse(input) {
-            Ok(result) => CommandResult::Success(format!("{result:#?}")),
+            Ok(result) => CommandResult::Success(
+                result
+                    .iter()
+                    .map(|result| format!("{result}"))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
             Err(error) => CommandResult::Error(error.message),
         }
     }
