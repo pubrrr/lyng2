@@ -149,7 +149,7 @@ mod atoms {
             "Syntax Error: expected expression, got ''".to_string(),
             message.message
         );
-        assert_eq!(Localization::at(0, 0), message.localization);
+        assert_eq!(Localization::at(0, 1), message.localization);
     }
 
     #[test]
@@ -161,7 +161,7 @@ mod atoms {
             "Syntax Error: expected expression, got ''".to_string(),
             message.message
         );
-        assert_eq!(Localization::at(0, 0), message.localization);
+        assert_eq!(Localization::at(1, 0), message.localization);
     }
 }
 

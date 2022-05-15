@@ -1,8 +1,9 @@
-use crate::ast::Localization;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::str::Chars;
+
+use crate::ast::Localization;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct ErrorMessage {
@@ -23,51 +24,51 @@ impl ErrorMessage {
     }
 
     pub fn forgot_comma(message: String) -> Self {
-        ErrorMessage::new(message, 121, Localization::new())
+        ErrorMessage::new(message, 121, todo!())
     }
 
     pub fn sign_failed(message: String, localization: Localization) -> Self {
         ErrorMessage::new(message, 70, localization)
     }
 
-    pub fn missing_opening_parenthesis(message: String) -> Self {
-        ErrorMessage::new(message, 40, Localization::new())
+    pub fn missing_opening_parenthesis(message: String, localization: Localization) -> Self {
+        ErrorMessage::new(message, 40, localization)
     }
 
-    pub fn missing_closing_parenthesis(message: String) -> Self {
-        ErrorMessage::new(message, 120, Localization::new())
+    pub fn missing_closing_parenthesis(message: String, localization: Localization) -> Self {
+        ErrorMessage::new(message, 120, localization)
     }
 
-    pub fn empty_expression(message: String) -> Self {
-        ErrorMessage::new(message, 99, Localization::new())
+    pub fn empty_expression(message: String, localization: Localization) -> Self {
+        ErrorMessage::new(message, 99, localization)
     }
 
-    pub fn atom_failed(message: String) -> Self {
-        ErrorMessage::new(message, 10, Localization::new())
+    pub fn atom_failed(message: String, localization: Localization) -> Self {
+        ErrorMessage::new(message, 10, localization)
     }
 
-    pub fn term_failed(message: String) -> Self {
-        ErrorMessage::new(message, 15, Localization::new())
+    pub fn term_failed(message: String, localization: Localization) -> Self {
+        ErrorMessage::new(message, 15, localization)
     }
 
     pub fn expression_failed(message: String) -> Self {
-        ErrorMessage::new(message, 20, Localization::new())
+        ErrorMessage::new(message, 20, todo!())
     }
 
-    pub fn exponentiation_failed(message: String) -> Self {
-        ErrorMessage::new(message, 25, Localization::new())
+    pub fn exponentiation_failed(message: String, localization: Localization) -> Self {
+        ErrorMessage::new(message, 25, localization)
     }
 
     pub fn expected_end_of_input(message: String) -> Self {
-        ErrorMessage::new(message, 110, Localization::new())
+        ErrorMessage::new(message, 110, todo!())
     }
 
     pub fn assignment_error(message: String) -> Self {
-        ErrorMessage::new(message, 120, Localization::new())
+        ErrorMessage::new(message, 120, todo!())
     }
 
     pub fn no_assignment_found(message: String) -> Self {
-        ErrorMessage::new(message, 0, Localization::new())
+        ErrorMessage::new(message, 0, todo!())
     }
 
     pub fn missing_tuple_comma() -> Self {
@@ -78,7 +79,7 @@ impl ErrorMessage {
         ErrorMessage::new(
             format!("expected function arguments, got {}", input.as_str()),
             80,
-            Localization::new(),
+            todo!(),
         )
     }
 

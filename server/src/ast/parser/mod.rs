@@ -74,10 +74,13 @@ impl Operator for PlusAndMinus {
         match_literal(CharWrapper::new("+".chars()))
             .or_else(match_literal(CharWrapper::new("-".chars())))
             .with_error(|_, input: CharWrapper| {
-                ErrorMessage::term_failed(format!(
-                    "expected operator + or -, got {}",
-                    input.chars.collect::<String>()
-                ))
+                ErrorMessage::term_failed(
+                    format!(
+                        "expected operator + or -, got {}",
+                        input.chars.collect::<String>()
+                    ),
+                    input.end,
+                )
             })
             .peek_and_transform(|mut x, y| {
                 x.end = y.start;
@@ -106,10 +109,13 @@ impl Operator for MulAndDiv {
         match_literal(CharWrapper::new("*".chars()))
             .or_else(match_literal(CharWrapper::new("/".chars())))
             .with_error(|_, input: CharWrapper| {
-                ErrorMessage::term_failed(format!(
-                    "expected operator + or -, got {}",
-                    input.chars.collect::<String>()
-                ))
+                ErrorMessage::term_failed(
+                    format!(
+                        "expected operator * or /, got {}",
+                        input.chars.collect::<String>()
+                    ),
+                    input.end,
+                )
             })
             .peek_and_transform(|mut x, y| {
                 x.end = y.start;
@@ -161,10 +167,13 @@ pub fn parse(input: String) -> Result<Vec<LocalizedSyntaxNode>, ErrorMessage> {
 
 fn parse_expression(input: CharWrapper) -> ParseResult {
     if !input.clone().any(|char| !char.is_whitespace()) {
-        return Err(ErrorMessage::empty_expression(format!(
-            "expected expression, got '{}'",
-            input.chars.collect::<String>()
-        )));
+        return Err(ErrorMessage::empty_expression(
+            format!(
+                "expected expression, got '{}'",
+                input.chars.collect::<String>()
+            ),
+            input.end,
+        ));
     }
 
     let summand_and_operator_parser =
@@ -204,10 +213,13 @@ fn parse_term(input: CharWrapper) -> ParseResult {
 fn parse_exponent(input: CharWrapper) -> ParseResult {
     let exponentiation_operator_parser = match_literal(CharWrapper::new("^".chars()))
         .with_error(|_, input: CharWrapper| {
-            ErrorMessage::exponentiation_failed(format!(
-                "expected operator ^, got {}",
-                input.chars.collect::<String>()
-            ))
+            ErrorMessage::exponentiation_failed(
+                format!(
+                    "expected operator ^, got {}",
+                    input.chars.collect::<String>()
+                ),
+                input.end,
+            )
         })
         .peek_and_transform(|mut x, y| {
             x.end = y.start;
@@ -256,17 +268,22 @@ fn parse_sign(input: CharWrapper) -> ParseResult {
 }
 
 fn parse_expression_in_brackets(input: CharWrapper) -> ParseResult {
-    let error_mapper =
-        |(expression_in_brackets_error, atom_error), _| match expression_in_brackets_error {
+    let error_mapper = |(expression_in_brackets_error, atom_error), input: CharWrapper| {
+        match expression_in_brackets_error {
             Either3::Left(_) => most_important_of!(
-                ErrorMessage::missing_opening_parenthesis(format!("'(' or {}", atom_error)),
+                ErrorMessage::missing_opening_parenthesis(
+                    format!("'(' or {}", atom_error),
+                    input.end
+                ),
                 atom_error
             ),
             Either3::Middle(message) => message,
-            Either3::Right(_) => {
-                ErrorMessage::missing_closing_parenthesis("missing closing parenthesis".to_string())
-            }
-        };
+            Either3::Right(_) => ErrorMessage::missing_closing_parenthesis(
+                "missing closing parenthesis".to_string(),
+                input.end,
+            ),
+        }
+    };
 
     Triple::new(
         match_literal(CharWrapper::new("(".chars())),
@@ -288,7 +305,7 @@ fn parse_atom(input: CharWrapper) -> ParseResult {
 
     float_parser
         .or_else(integer_parser)
-        .with_error(|_, _| ErrorMessage::atom_failed("a number".to_string()))
+        .with_error(|_, input| ErrorMessage::atom_failed("a number".to_string(), input.end))
         .or_else(parse_identifier)
         .with_error(|(err, _), _| err)
         .skip(whitespace)
