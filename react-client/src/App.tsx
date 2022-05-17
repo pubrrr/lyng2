@@ -1,36 +1,34 @@
-import React, {useEffect, useState} from 'react';
+import React, {useState} from 'react';
 import Loading from "./Loading";
 import LoadingFailed from "./LoadingFailed";
 import Editor from "./Editor";
 import LostConnection from "./LostConnection";
+import useWebSocket from "react-use-websocket";
 
-const enum State {
-    Initializing,
-    Initialized,
-    Failed,
-    LostConnection,
-}
+type State = "connected" | "loading" | "failed loading" | "lost connection"
 
 function App(): JSX.Element {
-    let [state, setState] = useState(State.Initializing);
+    const [state, setState] = useState<State>("loading");
 
-    useEffect(() => {
-        const socket = new WebSocket('ws://127.0.0.1:8080');
-
-        socket.onopen = () => setState(State.Initialized);
-        socket.onerror = () => setState(State.Failed);
-        socket.onclose = () => setState(State.LostConnection);
-    }, []);
+    useWebSocket(
+        'ws://127.0.0.1:8080',
+        {
+            share: true,
+            onOpen: () => setState("connected"),
+            onError: () => setState("failed loading"),
+            onClose: () => setState("lost connection"),
+        }
+    )
 
     switch (state) {
-        case State.Initializing:
-            return <Loading/>
-        case State.Failed:
-            return <LoadingFailed/>
-        case State.Initialized:
-            return <Editor/>
-        case State.LostConnection:
-            return <LostConnection/>
+        case "loading":
+            return <Loading/>;
+        case "failed loading":
+            return <LoadingFailed/>;
+        case "lost connection":
+            return <LostConnection/>;
+        case "connected":
+            return <Editor/>;
     }
 }
 
