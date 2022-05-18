@@ -36,7 +36,7 @@ test('changes to editor when websocket connected', () => {
     expect(Editor).toBeCalled();
 });
 
-test('changes to editor when websocket connected', () => {
+test('changes to loading failed when websocket connection fails', () => {
     render(<App/>);
 
     act(() => {
@@ -45,7 +45,7 @@ test('changes to editor when websocket connected', () => {
     expect(LoadingFailed).toBeCalled();
 });
 
-test('changes to editor when websocket connected', () => {
+test('changes to lost connection when websocket connection terminates', () => {
     render(<App/>);
 
     act(() => {
