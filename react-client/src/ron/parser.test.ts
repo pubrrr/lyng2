@@ -1,66 +1,4 @@
-import {
-    decode,
-    EnumVariant,
-    string,
-    tupleStruct,
-    TupleStruct,
-} from "./parser";
-import {
-    apply,
-    buildLexer,
-    err,
-    expectEOF,
-    expectSingleResult,
-    seq,
-    str,
-    tok,
-    Token,
-} from "typescript-parsec";
-
-type Enum = EnumVariant<"Success", string> | EnumVariant<"Error", number>;
-
-enum TokenKind {
-    Identifier,
-    String,
-    LeftParenthesis,
-    RightParenthesis,
-    DoubleQuote,
-}
-
-function decode2(input: string): TupleStruct<"Success", [string]> {
-    const lexer = buildLexer([
-        [true, /^[a-zA-Z][a-zA-Z\d]*/g, TokenKind.Identifier],
-        [true, /^[^")(]*/g, TokenKind.String],
-        [true, /^\(/g, TokenKind.LeftParenthesis],
-        [true, /^\)/g, TokenKind.RightParenthesis],
-        [true, /^"/g, TokenKind.DoubleQuote],
-    ]);
-
-    let tokens = lexer.parse(input);
-    let output = seq(
-        str("Success"),
-        err(tok(TokenKind.LeftParenthesis), "expected ("),
-        tok(TokenKind.DoubleQuote),
-        apply(
-            tok(TokenKind.String),
-            (value: Token<TokenKind>): string => value.text
-        ),
-        tok(TokenKind.DoubleQuote),
-        tok(TokenKind.RightParenthesis)
-    ).parse(tokens);
-    let result = expectSingleResult(expectEOF(output));
-
-    return {
-        name: "Success",
-        value: [result[3]],
-    };
-}
-
-test("tuple with one field", () => {
-    let result = decode2('Success("success message")');
-
-    expect(result.value).toEqual(["success message"]);
-});
+import { decode, string, tupleStruct, TupleStruct } from "./parser";
 
 describe("decoding RON strings", () => {
     test("should succeed on a valid string", () => {
@@ -70,22 +8,23 @@ describe("decoding RON strings", () => {
         expect((result as { value: string }).value).toBe("valid string");
     });
 
+    test("should succeed on a valid string without spaces", () => {
+        let result = decode('"a"', string);
+
+        expect(result.success).toBe(true);
+        expect((result as { value: string }).value).toBe("a");
+    });
+
     test("should fail with missing quotes", () => {
         let result = decode("has no quotes", string);
 
         expect(result.success).toBe(false);
-        expect((result as { error: string }).error).toBe(
-            "expected opening double quotes"
-        );
     });
 
     test("should fail with missing closing double quotes", () => {
         let result = decode('"has no closing quotes', string);
 
         expect(result.success).toBe(false);
-        expect((result as { error: string }).error).toBe(
-            "expected closing double quotes"
-        );
     });
 
     test("should fail on double quotes in the middle", () => {
@@ -107,6 +46,48 @@ describe("decoding RON tuple structs", () => {
         ).toEqual({
             name: "Success",
             value: ["success message"],
+        });
+    });
+
+    test("should decode a tuple struct with trailing commas", () => {
+        let underTest = tupleStruct("Success", [string]);
+
+        let result = decode('Success("success message", )', underTest);
+
+        expect(result.success).toBe(true);
+        expect(
+            (result as { value: TupleStruct<"Success", string[]> }).value
+        ).toEqual({
+            name: "Success",
+            value: ["success message"],
+        });
+    });
+
+    test("should decode a valid tuple struct with two string fields", () => {
+        let underTest = tupleStruct("Success", [string, string]);
+
+        let result = decode('Success("first","second")', underTest);
+
+        expect(result.success).toBe(true);
+        expect(
+            (result as { value: TupleStruct<"Success", string[]> }).value
+        ).toEqual({
+            name: "Success",
+            value: ["first", "second"],
+        });
+    });
+
+    test("should decode a tuple struct with spaces between fields", () => {
+        let underTest = tupleStruct("Success", [string, string]);
+
+        let result = decode('Success("first" , "second")', underTest);
+
+        expect(result.success).toBe(true);
+        expect(
+            (result as { value: TupleStruct<"Success", string[]> }).value
+        ).toEqual({
+            name: "Success",
+            value: ["first", "second"],
         });
     });
 });

@@ -1,9 +1,10 @@
 import {
     apply,
     buildLexer,
-    err,
     expectEOF,
-    kmid,
+    kleft,
+    kright,
+    opt,
     Parser,
     ParserOutput,
     seq,
@@ -17,15 +18,17 @@ enum RonToken {
     String,
     LeftParenthesis,
     RightParenthesis,
-    DoubleQuote,
+    Whitespace,
+    Comma,
 }
 
 const RON_LEXER = buildLexer([
     [true, /^[a-zA-Z][a-zA-Z\d]*/g, RonToken.Identifier],
-    [true, /^[^")(]*/g, RonToken.String],
+    [true, /^"[^")(]*"/g, RonToken.String],
+    [true, /^\s+/g, RonToken.Whitespace],
+    [true, /^,/g, RonToken.Comma],
     [true, /^\(/g, RonToken.LeftParenthesis],
     [true, /^\)/g, RonToken.RightParenthesis],
-    [true, /^"/g, RonToken.DoubleQuote],
 ]);
 
 interface RonDecoder<V> {
@@ -43,7 +46,16 @@ export type Result<V> =
       };
 
 export function decode<V>(input: string, decoder: RonDecoder<V>): Result<V> {
-    const parseResult = expectEOF(decoder(RON_LEXER.parse(input)));
+    let token;
+    try {
+        token = RON_LEXER.parse(input);
+    } catch (e) {
+        return {
+            success: false,
+            error: e instanceof Error ? e.message : "could not lex RON input",
+        };
+    }
+    const parseResult = expectEOF(decoder(token));
 
     if (!parseResult.successful) {
         return { success: false, error: parseResult.error.message };
@@ -63,11 +75,16 @@ export function decode<V>(input: string, decoder: RonDecoder<V>): Result<V> {
     return { success: true, value: parseResult.candidates[0].result };
 }
 
-export const string = kmid(
-    err(tok(RonToken.DoubleQuote), "expected opening double quotes"),
-    apply(tok(RonToken.String), (token: Token<RonToken>): string => token.text),
-    err(tok(RonToken.DoubleQuote), "expected closing double quotes")
+export const string = apply(
+    tok(RonToken.String),
+    (token: Token<RonToken>): string => token.text.slice(1, -1)
 ).parse;
+
+const comma = seq(
+    opt(tok(RonToken.Whitespace)),
+    str<RonToken>(","),
+    opt(tok(RonToken.Whitespace))
+);
 
 export function tupleStruct<Literal extends string, Value extends any[]>(
     name: StringLiteral<Literal>,
@@ -80,7 +97,7 @@ export function tupleStruct<Literal extends string, Value extends any[]>(
             seq(
                 str<RonToken>(name),
                 tok(RonToken.LeftParenthesis),
-                fieldsParser(fields),
+                kleft(fieldsParser(fields), opt(comma)),
                 tok(RonToken.RightParenthesis)
             ),
             (value) => {
@@ -97,26 +114,18 @@ export function tupleStruct<Literal extends string, Value extends any[]>(
 function fieldsParser<Value extends any[]>(
     fields: FieldsArray<Value>
 ): Parser<RonToken, Value> {
-    function parse(
-        token: Token<RonToken> | undefined
-    ): ParserOutput<RonToken, Value> {
-        let [first, ...rest] = fields;
-
-        let result = apply(
-            { parse: first as RonDecoder<Value[0]> },
-            (value) => [value]
-        ).parse(token);
-        if (!result.successful) {
-            return result;
-        }
-
-        if (rest.length == 0) {
-            return result as ParserOutput<RonToken, Value>;
-        }
-        throw "ohoh";
+    let [first, ...rest] = fields;
+    if (rest.length == 0) {
+        return apply({ parse: first }, (value) => [value]) as Parser<
+            RonToken,
+            Value
+        >;
     }
 
-    return { parse };
+    return apply(
+        seq({ parse: first }, kright(comma, fieldsParser(rest))),
+        (value) => [value[0], ...value[1]]
+    ) as Parser<RonToken, Value>;
 }
 
 type FieldsArray<V extends any[]> = {
@@ -129,8 +138,3 @@ export type TupleStruct<Literal extends string, Value extends any[]> = {
 };
 
 export type StringLiteral<T extends string> = string extends T ? never : T;
-
-export interface EnumVariant<Literal extends string, Value> {
-    name: StringLiteral<Literal>;
-    value: Value;
-}
