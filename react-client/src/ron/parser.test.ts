@@ -1,4 +1,4 @@
-import { decode, string, tupleStruct, TupleStruct } from "./parser";
+import { decode, number, string, tupleStruct, TupleStruct } from "./parser";
 
 describe("decoding RON strings", () => {
     test("should succeed on a valid string", () => {
@@ -34,60 +34,93 @@ describe("decoding RON strings", () => {
     });
 });
 
+describe("decoding numbers", () => {
+    test("should fail on an invalid number", () => {
+        let result = decode('"12.34.56"', number);
+
+        if (result.success) {
+            throw result.value;
+        }
+        expect((result as { error: string }).error).toBe("could not parse 12.34.56 to a number");
+    });
+
+    test("should succeed on a valid integer", () => {
+        let result = decode('"12"', number);
+
+        if (!result.success) {
+            throw result.error;
+        }
+        expect(result.value).toBe(12);
+    });
+
+    test("should succeed on a valid float", () => {
+        let result = decode('"12.34"', number);
+
+        if (!result.success) {
+            throw result.error;
+        }
+        expect(result.value).toBeCloseTo(12.34, 3);
+    });
+});
+
 describe("decoding RON tuple structs", () => {
     test("should decode a valid tuple struct with one string field", () => {
-        let underTest = tupleStruct("Success", [string]);
+        let underTest = tupleStruct("Success", string);
 
         let result = decode('Success("success message")', underTest);
 
         expect(result.success).toBe(true);
-        expect(
-            (result as { value: TupleStruct<"Success", string[]> }).value
-        ).toEqual({
+        expect((result as { value: TupleStruct<"Success", string[]> }).value).toEqual({
             name: "Success",
             value: ["success message"],
         });
     });
 
     test("should decode a tuple struct with trailing commas", () => {
-        let underTest = tupleStruct("Success", [string]);
+        let underTest = tupleStruct("Success", string);
 
         let result = decode('Success("success message", )', underTest);
 
         expect(result.success).toBe(true);
-        expect(
-            (result as { value: TupleStruct<"Success", string[]> }).value
-        ).toEqual({
+        expect((result as { value: TupleStruct<"Success", string[]> }).value).toEqual({
             name: "Success",
             value: ["success message"],
         });
     });
 
     test("should decode a valid tuple struct with two string fields", () => {
-        let underTest = tupleStruct("Success", [string, string]);
+        let underTest = tupleStruct("Success", string, string);
 
         let result = decode('Success("first","second")', underTest);
 
         expect(result.success).toBe(true);
-        expect(
-            (result as { value: TupleStruct<"Success", string[]> }).value
-        ).toEqual({
+        expect((result as { value: TupleStruct<"Success", string[]> }).value).toEqual({
             name: "Success",
             value: ["first", "second"],
         });
     });
 
     test("should decode a tuple struct with spaces between fields", () => {
-        let underTest = tupleStruct("Success", [string, string]);
+        let underTest = tupleStruct("Success", string, string);
 
         let result = decode('Success("first" , "second")', underTest);
 
         expect(result.success).toBe(true);
-        expect(
-            (result as { value: TupleStruct<"Success", string[]> }).value
-        ).toEqual({
+        expect((result as { value: TupleStruct<"Success", string[]> }).value).toEqual({
             name: "Success",
             value: ["first", "second"],
+        });
+    });
+
+    test("should decode a tuple struct of string and int", () => {
+        let underTest = tupleStruct("Success", string, number);
+
+        let result = decode('Success("first" , "42")', underTest);
+
+        expect(result.success).toBe(true);
+        expect((result as { value: TupleStruct<"Success", [string, number]> }).value).toEqual({
+            name: "Success",
+            value: ["first", 42],
         });
     });
 });
