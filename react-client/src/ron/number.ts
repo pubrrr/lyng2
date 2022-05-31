@@ -44,7 +44,9 @@ function looksLikeANumber(value: ParseResult<RonToken, string>) {
     return /^\d+$/.test(value.result) || /^\d*\.\d*$/.test(value.result);
 }
 
-function createErrorFor(unparsableString: ParseResult<RonToken, string>): ParserOutput<RonToken, number> {
+function createErrorFor(
+    unparsableString: ParseResult<RonToken, string>
+): ParserOutput<RonToken, number> {
     return {
         successful: false,
         error: {

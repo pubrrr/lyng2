@@ -1,4 +1,15 @@
-import { apply, kleft, kright, opt, Parser, ParserOutput, seq, str, tok, Token } from "typescript-parsec";
+import {
+    apply,
+    kleft,
+    kright,
+    opt,
+    Parser,
+    ParserOutput,
+    seq,
+    str,
+    tok,
+    Token,
+} from "typescript-parsec";
 import { RonDecoder, RonToken, StringLiteral } from "./common";
 
 const comma = seq(opt(tok(RonToken.Whitespace)), str<RonToken>(","), opt(tok(RonToken.Whitespace)));
@@ -12,7 +23,9 @@ export function tupleStruct<Literal extends string, Value extends [...any[]]>(
     name: StringLiteral<Literal>,
     ...fields: FieldDecoders<Value>
 ): RonDecoder<TupleStruct<Literal, Value>> {
-    return (token: Token<RonToken> | undefined): ParserOutput<RonToken, TupleStruct<Literal, Value>> => {
+    return (
+        token: Token<RonToken> | undefined
+    ): ParserOutput<RonToken, TupleStruct<Literal, Value>> => {
         let parser = apply(
             seq(
                 str<RonToken>(name),
@@ -31,7 +44,9 @@ export function tupleStruct<Literal extends string, Value extends [...any[]]>(
     };
 }
 
-function fieldsParser<Value extends [...any[]]>(fields: FieldDecoders<Value>): Parser<RonToken, Value> {
+function fieldsParser<Value extends [...any[]]>(
+    fields: FieldDecoders<Value>
+): Parser<RonToken, Value> {
     let [first, ...rest] = fields;
     if (rest.length == 0) {
         return apply({ parse: first }, (value) => [value]) as Parser<RonToken, Value>;
