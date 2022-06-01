@@ -1,4 +1,4 @@
-import { decode, number, string, tupleStruct, TupleStruct } from "./parser";
+import { decode, number, ronEnum, string, tupleStruct, TupleStruct } from "./parser";
 
 describe("decoding RON strings", () => {
     test("should succeed on a valid string", () => {
@@ -122,5 +122,48 @@ describe("decoding RON tuple structs", () => {
             name: "Success",
             value: ["first", 42],
         });
+    });
+});
+
+describe("decoding RON enums", () => {
+    let name: "First" = "First";
+    const underTest = ronEnum(tupleStruct(name, string), tupleStruct("Second", number, string));
+
+    test("should decode first enum variant", () => {
+        let result = decode('First("aValue")', underTest);
+
+        if (!result.success) {
+            throw result.error;
+        }
+        expect(result.value.name).toBe("First");
+        expect(result.value.value).toStrictEqual(["aValue"]);
+    });
+
+    test("should decode second enum variant", () => {
+        let result = decode('Second("42", "aValue")', underTest);
+
+        if (!result.success) {
+            throw result.error;
+        }
+        expect(result.value.name).toBe("Second");
+        expect(result.value.value).toStrictEqual([42, "aValue"]);
+    });
+
+    test("should return an error when providing field for another variant", () => {
+        let result = decode('Second("aValue")', underTest);
+
+        if (result.success) {
+            throw result.value;
+        }
+        expect(result.error).toBe('Did not find matching enum variant for "Second("aValue")"');
+    });
+
+    test("should return an error on invalid input", () => {
+        let result = decode("something invalid", underTest);
+
+        if (result.success) {
+            throw result.value;
+        }
+        expect(result.error).toBe('Did not find matching enum variant for "something invalid"');
     });
 });

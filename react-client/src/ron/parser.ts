@@ -2,9 +2,10 @@ import { buildLexer, expectEOF } from "typescript-parsec";
 import { RonDecoder, RonToken, StringLiteral } from "./common";
 import { string } from "./string";
 import { number } from "./number";
+import { ronEnum } from "./enum";
 import { tupleStruct, TupleStruct } from "./tupleStruct";
 
-export { string, number, tupleStruct };
+export { string, number, tupleStruct, ronEnum };
 export type { TupleStruct, StringLiteral };
 
 export type Result<V> =
