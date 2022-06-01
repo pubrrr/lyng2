@@ -1,6 +1,8 @@
-import { ParseResult, ParserOutput, Token } from "typescript-parsec";
+import { ParseResult as ParsecParseResult, ParserOutput, Token } from "typescript-parsec";
 import { RonToken } from "./common";
-import { string } from "./parser";
+import { string } from "./string";
+
+type ParseResult<T> = ParsecParseResult<RonToken, T>;
 
 export function number(token: Token<RonToken> | undefined): ParserOutput<RonToken, number> {
     const stringResult = string(token);
@@ -11,20 +13,22 @@ export function number(token: Token<RonToken> | undefined): ParserOutput<RonToke
 
     const parsedNumberCandidates = stringResult.candidates.map(tryToParseToNumber);
 
-    let unparseableString = parsedNumberCandidates.find((value) => typeof value.result == "string");
-    if (unparseableString != undefined) {
-        return createErrorFor(unparseableString as ParseResult<RonToken, string>);
+    let unparseableString = parsedNumberCandidates.find(
+        (value: ParseResult<string> | ParseResult<number>) => typeof value.result == "string"
+    );
+    if (unparseableString !== undefined) {
+        return createErrorFor(unparseableString as ParseResult<string>);
     }
 
     return {
         ...stringResult,
-        candidates: parsedNumberCandidates as ParseResult<RonToken, number>[],
+        candidates: parsedNumberCandidates as ParseResult<number>[],
     };
 }
 
 function tryToParseToNumber(
-    candidate: ParseResult<RonToken, string>
-): ParseResult<RonToken, string> | ParseResult<RonToken, number> {
+    candidate: ParseResult<string>
+): ParseResult<string> | ParseResult<number> {
     if (!looksLikeANumber(candidate)) {
         return candidate;
     }
@@ -40,13 +44,11 @@ function tryToParseToNumber(
     return candidate;
 }
 
-function looksLikeANumber(value: ParseResult<RonToken, string>) {
+function looksLikeANumber(value: ParseResult<string>) {
     return /^\d+$/.test(value.result) || /^\d*\.\d*$/.test(value.result);
 }
 
-function createErrorFor(
-    unparsableString: ParseResult<RonToken, string>
-): ParserOutput<RonToken, number> {
+function createErrorFor(unparsableString: ParseResult<string>): ParserOutput<RonToken, number> {
     return {
         successful: false,
         error: {

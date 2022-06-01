@@ -1,4 +1,4 @@
-import { decode, number, ronEnum, string, tupleStruct, TupleStruct } from "./parser";
+import { decode, number, ronEnum, string, tupleStruct, TupleStruct } from "./index";
 
 describe("decoding RON strings", () => {
     test("should succeed on a valid string", () => {
@@ -121,6 +121,18 @@ describe("decoding RON tuple structs", () => {
         expect((result as { value: TupleStruct<"Success", [string, number]> }).value).toEqual({
             name: "Success",
             value: ["first", 42],
+        });
+    });
+
+    test("should decode a string tuple struct that contains ()", () => {
+        let underTest = tupleStruct("Success", string);
+
+        let result = decode('Success("(with parenthesis)")', underTest);
+
+        expect(result.success).toBe(true);
+        expect((result as { value: TupleStruct<"Success", [string]> }).value).toEqual({
+            name: "Success",
+            value: ["(with parenthesis)"],
         });
     });
 });

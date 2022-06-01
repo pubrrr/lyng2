@@ -20,7 +20,7 @@ export type Result<V> =
 
 const RON_LEXER = buildLexer([
     [true, /^[a-zA-Z][a-zA-Z\d]*/g, RonToken.Identifier],
-    [true, /^"[^")(]*"/g, RonToken.String],
+    [true, /^"[^"]*"/g, RonToken.String],
     [true, /^\s+/g, RonToken.Whitespace],
     [true, /^,/g, RonToken.Comma],
     [true, /^\(/g, RonToken.LeftParenthesis],
@@ -42,7 +42,7 @@ export function decode<V>(input: string, decoder: RonDecoder<V>): Result<V> {
     if (!parseResult.successful) {
         return { success: false, error: parseResult.error.message };
     }
-    if (parseResult.candidates.length == 0) {
+    if (parseResult.candidates.length === 0) {
         return {
             success: false,
             error: "Decoding RON value returned no result",

@@ -14,7 +14,7 @@ function decodeEnum<Variants extends [...NamedValue[]]>(
     token: Token<RonToken> | undefined,
     variantDecoders: EnumVariantDecoders<Variants>
 ): ParserOutput<RonToken, EnumVariants<Variants>> {
-    if (variantDecoders.length == 0) {
+    if (variantDecoders.length === 0) {
         return {
             successful: false,
             error: {
@@ -35,14 +35,14 @@ function decodeEnum<Variants extends [...NamedValue[]]>(
 }
 
 function reassembleTokens(token: Token<RonToken> | undefined): string {
-    if (token == undefined) {
+    if (token === undefined) {
         return "";
     }
     return token.text + reassembleTokens(token.next);
 }
 
 type EnumVariants<Variants extends NamedValue[]> = Variants extends [
-    TupleStruct<infer A, infer B>,
+    TupleStruct<any, any>,
     ...infer Tail
 ]
     ? Tail extends NamedValue[]
@@ -51,7 +51,7 @@ type EnumVariants<Variants extends NamedValue[]> = Variants extends [
     : never;
 
 type EnumVariantDecoders<V extends [...NamedValue[]]> = {
-    [Key in keyof V]: V[Key] extends TupleStruct<infer A, infer B> ? RonDecoder<V[Key]> : never;
+    [Key in keyof V]: V[Key] extends TupleStruct<any, any> ? RonDecoder<V[Key]> : never;
 };
 
 type NamedValue = { name: string; value: any };

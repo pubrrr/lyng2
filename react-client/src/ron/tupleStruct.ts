@@ -48,7 +48,7 @@ function fieldsParser<Value extends [...any[]]>(
     fields: FieldDecoders<Value>
 ): Parser<RonToken, Value> {
     let [first, ...rest] = fields;
-    if (rest.length == 0) {
+    if (rest.length === 0) {
         return apply({ parse: first }, (value) => [value]) as Parser<RonToken, Value>;
     }
 
