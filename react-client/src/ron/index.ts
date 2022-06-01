@@ -8,6 +8,10 @@ import { tupleStruct, TupleStruct } from "./tupleStruct";
 export { string, number, tupleStruct, ronEnum };
 export type { TupleStruct, StringLiteral };
 
+export type RonValue<Decoder extends RonDecoder<any>> = Decoder extends RonDecoder<infer Value>
+    ? Value
+    : never;
+
 export type Result<V> =
     | {
           success: true;

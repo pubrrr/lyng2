@@ -1,4 +1,4 @@
-import { decode, number, ronEnum, string, tupleStruct, TupleStruct } from "./index";
+import { decode, number, ronEnum, RonValue, string, tupleStruct, TupleStruct } from "./index";
 
 describe("decoding RON strings", () => {
     test("should succeed on a valid string", () => {
@@ -135,11 +135,20 @@ describe("decoding RON tuple structs", () => {
             value: ["(with parenthesis)"],
         });
     });
+
+    test("should infer the correct type", () => {
+        const underTest = tupleStruct("Success", string, number);
+        type InferredRonValue = RonValue<typeof underTest>;
+        type ExpectedRonValue = TupleStruct<"Success", [string, number]>;
+
+        const typeTest: IfEquals<InferredRonValue, ExpectedRonValue> = true;
+
+        expect(typeTest).toBe(true);
+    });
 });
 
 describe("decoding RON enums", () => {
-    let name: "First" = "First";
-    const underTest = ronEnum(tupleStruct(name, string), tupleStruct("Second", number, string));
+    const underTest = ronEnum(tupleStruct("First", string), tupleStruct("Second", number, string));
 
     test("should decode first enum variant", () => {
         let result = decode('First("aValue")', underTest);
@@ -178,4 +187,19 @@ describe("decoding RON enums", () => {
         }
         expect(result.error).toBe('Did not find matching enum variant for "something invalid"');
     });
+
+    test("should infer the correct type", () => {
+        type InferredRonValue = RonValue<typeof underTest>;
+        type ExpectedRonValue =
+            | TupleStruct<"First", [string]>
+            | TupleStruct<"Second", [number, string]>;
+
+        const typeTest: IfEquals<InferredRonValue, ExpectedRonValue> = true;
+
+        expect(typeTest).toBe(true);
+    });
 });
+
+type IfEquals<T, U> = TestType<T> extends TestType<U> ? true : never;
+
+type TestType<T> = <G>() => G extends T ? 1 : 2;
