@@ -24,7 +24,7 @@ const Editor = () => {
         <>
             <button onClick={onClick}>Send</button>
             <div data-testid="input" contentEditable={true} onInput={setInput(setState)}></div>
-            <p data-testid="view">{state.viewContent}</p>
+            <p data-testid="view">{highlightSyntax(state.viewContent)}</p>
         </>
     );
 };
@@ -38,6 +38,30 @@ function setInput(setState: Dispatch<SetStateAction<EditorState>>): FormEventHan
             };
         });
     };
+}
+
+function highlightSyntax(content: string): JSX.Element {
+    const highlighted = content
+        .split(/([\^+\-*/()])/g)
+        .filter((part) => part.length > 0)
+        .map((part, index) => {
+            if (["+", "-", "*", "/", "^"].includes(part)) {
+                return (
+                    <span key={index} style={{ color: "violet" }}>
+                        {part}
+                    </span>
+                );
+            }
+            if (["(", ")"].includes(part)) {
+                return (
+                    <span key={index} style={{ color: "aquamarine" }}>
+                        {part}
+                    </span>
+                );
+            }
+            return <span key={index}>{part}</span>;
+        });
+    return <>{highlighted}</>;
 }
 
 export default Editor;
