@@ -7,10 +7,12 @@ type EditorState = {
     viewContent: string;
 };
 
+export const websocketUrl = "ws://127.0.0.1:8080";
+
 const Editor = () => {
     const [state, setState] = useState<EditorState>({ editorContent: "", viewContent: "" });
 
-    const { sendMessage } = useWebSocket("ws://127.0.0.1:8080", {
+    const { sendMessage } = useWebSocket(websocketUrl, {
         share: true,
         onMessage: (event) =>
             setState((prevState) => {
