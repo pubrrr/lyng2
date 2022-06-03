@@ -23,11 +23,20 @@ const Editor = () => {
     const onClick = () => sendMessage(state.editorContent);
 
     return (
-        <>
-            <button onClick={onClick}>Send</button>
-            <div data-testid="input" contentEditable={true} onInput={setInput(setState)}></div>
-            <p data-testid="view">{highlightSyntax(state.viewContent)}</p>
-        </>
+        <div className="editorContainer">
+            <div className="inputContainer">
+                <button onClick={onClick}>Send</button>
+                <p
+                    data-testid="input"
+                    className="code input"
+                    contentEditable={true}
+                    onInput={setInput(setState)}
+                ></p>
+            </div>
+            <p data-testid="view" className="code view">
+                {highlightSyntax(state.viewContent)}
+            </p>
+        </div>
     );
 };
 
