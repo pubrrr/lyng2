@@ -1,8 +1,11 @@
 use std::collections::HashMap;
+use std::fs::File;
 use std::net::{SocketAddr, TcpStream};
 use std::thread::sleep;
 use std::time::Duration;
 
+use log::{debug, info, LevelFilter};
+use simplelog::{CombinedLogger, Config, SimpleLogger, WriteLogger};
 use websocket::sync::{Client, Server};
 use websocket::{CloseData, OwnedMessage, WebSocketError, WebSocketResult};
 
@@ -12,6 +15,8 @@ mod application;
 mod ast;
 
 fn main() {
+    setup_logger();
+
     let mut server = Server::bind("127.0.0.1:8080").unwrap();
 
     let _clients: HashMap<SocketAddr, (Client<TcpStream>, Context)> = HashMap::new();
@@ -20,7 +25,7 @@ fn main() {
         let client = request.accept().unwrap();
 
         let ip = client.peer_addr().unwrap();
-        println!("{} connected", ip);
+        info!("{} connected", ip);
 
         let (mut reader, mut writer) = client.split().unwrap();
 
@@ -34,7 +39,7 @@ fn main() {
                     writer.send_message(&response).unwrap();
 
                     if let OwnedMessage::Close(data) = response {
-                        println!("{} disconnected: {:?}", ip, data);
+                        info!("{} disconnected: {:?}", ip, data);
                         connection_closed = true;
                     }
                 }
@@ -49,13 +54,13 @@ fn process(message: WebSocketResult<OwnedMessage>) -> Option<OwnedMessage> {
     match message {
         Ok(message) => match message {
             OwnedMessage::Text(text) => {
-                println!("text: {text}");
+                debug!("text: {text}");
 
                 let mut application = Application::create();
                 let result = application.run(text);
 
                 let result = ron::to_string(&result).unwrap();
-                println!("result: {result}");
+                debug!("result: {result}");
 
                 Some(OwnedMessage::Text(result))
             }
@@ -69,4 +74,17 @@ fn process(message: WebSocketResult<OwnedMessage>) -> Option<OwnedMessage> {
             err.to_string(),
         )))),
     }
+}
+
+fn setup_logger() {
+    let current_date_time = chrono::Local::now().format("%Y-%m-%d_%H-%M");
+    CombinedLogger::init(vec![
+        WriteLogger::new(
+            LevelFilter::Debug,
+            Config::default(),
+            File::create(format!("logs/log-{}.txt", current_date_time)).unwrap(),
+        ),
+        SimpleLogger::new(LevelFilter::Debug, Config::default()),
+    ])
+    .unwrap();
 }
