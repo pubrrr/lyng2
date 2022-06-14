@@ -9,7 +9,6 @@ import Test exposing (..)
 suite : Test
 suite =
     describe "EvaluationResult decoding"
-        --[ test "dummy" (\_ -> 1 |> equal 1)
         [ fuzz string
             "success"
             (\message ->
