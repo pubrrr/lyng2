@@ -3,6 +3,7 @@ use core::str::Chars;
 use std::str::FromStr;
 
 use bigdecimal::BigDecimal;
+use log::debug;
 use parser_combinator::either::Either;
 use parser_combinator::either::Either3;
 use parser_combinator::pair::Pair;
@@ -132,6 +133,8 @@ impl Operator for MulAndDiv {
 }
 
 pub fn parse(input: String) -> Result<Vec<LocalizedSyntaxNode>, ErrorMessage> {
+    debug!("parsing {input}");
+
     let (result, leftover) = parse_expression
         .separated_by(match_character(';'))
         .with_error(|err, _| {
