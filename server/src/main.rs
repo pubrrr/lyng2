@@ -1,16 +1,14 @@
-use std::collections::HashMap;
 use std::fs::File;
-use std::net::{SocketAddr, TcpStream};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
 
 use log::{debug, error, info, warn, LevelFilter};
-use simplelog::{CombinedLogger, Config, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
-use websocket::sync::{Client, Server};
+use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
+use websocket::sync::Server;
 use websocket::{CloseData, OwnedMessage, WebSocketError, WebSocketResult};
 
-use crate::application::{Application, Context};
+use crate::application::Application;
 
 mod application;
 mod ast;

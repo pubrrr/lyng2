@@ -29,8 +29,6 @@ impl Application {
     }
 }
 
-pub struct Context;
-
 #[cfg(test)]
 mod tests {
     use crate::application::CommandResult;
