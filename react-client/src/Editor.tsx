@@ -7,10 +7,12 @@ type EditorState = {
     viewContent: string;
 };
 
+export const websocketUrl = "ws://127.0.0.1:8080";
+
 const Editor = () => {
     const [state, setState] = useState<EditorState>({ editorContent: "", viewContent: "" });
 
-    const { sendMessage } = useWebSocket("ws://127.0.0.1:8080", {
+    const { sendMessage } = useWebSocket(websocketUrl, {
         share: true,
         onMessage: (event) =>
             setState((prevState) => {
@@ -21,11 +23,20 @@ const Editor = () => {
     const onClick = () => sendMessage(state.editorContent);
 
     return (
-        <>
-            <button onClick={onClick}>Send</button>
-            <div data-testid="input" contentEditable={true} onInput={setInput(setState)}></div>
-            <p data-testid="view">{state.viewContent}</p>
-        </>
+        <div className="editorContainer">
+            <div className="inputContainer">
+                <button onClick={onClick}>Send</button>
+                <p
+                    data-testid="input"
+                    className="code input"
+                    contentEditable={true}
+                    onInput={setInput(setState)}
+                ></p>
+            </div>
+            <p data-testid="view" className="code view">
+                {highlightSyntax(state.viewContent)}
+            </p>
+        </div>
     );
 };
 
@@ -38,6 +49,30 @@ function setInput(setState: Dispatch<SetStateAction<EditorState>>): FormEventHan
             };
         });
     };
+}
+
+function highlightSyntax(content: string): JSX.Element {
+    const highlighted = content
+        .split(/([\^+\-*/()])/g)
+        .filter((part) => part.length > 0)
+        .map((part, index) => {
+            if (["+", "-", "*", "/", "^"].includes(part)) {
+                return (
+                    <span key={index} style={{ color: "violet" }}>
+                        {part}
+                    </span>
+                );
+            }
+            if (["(", ")"].includes(part)) {
+                return (
+                    <span key={index} style={{ color: "aquamarine" }}>
+                        {part}
+                    </span>
+                );
+            }
+            return <span key={index}>{part}</span>;
+        });
+    return <>{highlighted}</>;
 }
 
 export default Editor;

@@ -1,32 +1,29 @@
-import React, { useState } from "react";
+import React from "react";
 import Loading from "./Loading";
 import LoadingFailed from "./LoadingFailed";
-import Editor from "./Editor";
+import Editor, { websocketUrl } from "./Editor";
 import LostConnection from "./LostConnection";
 import useWebSocket from "react-use-websocket";
-
-type State = "connected" | "loading" | "failed loading" | "lost connection";
+import { Route, Routes, useNavigate } from "react-router-dom";
 
 function App(): JSX.Element {
-    const [state, setState] = useState<State>("loading");
+    const navigate = useNavigate();
 
-    useWebSocket("ws://127.0.0.1:8080", {
+    useWebSocket(websocketUrl, {
         share: true,
-        onOpen: () => setState("connected"),
-        onError: () => setState("failed loading"),
-        onClose: () => setState("lost connection"),
+        onOpen: () => navigate("editor"),
+        onError: () => navigate("connectionFailed"),
+        onClose: () => navigate("lostConnection"),
     });
 
-    switch (state) {
-        case "loading":
-            return <Loading />;
-        case "failed loading":
-            return <LoadingFailed />;
-        case "lost connection":
-            return <LostConnection />;
-        case "connected":
-            return <Editor />;
-    }
+    return (
+        <Routes>
+            <Route path="/" element={<Loading />} />
+            <Route path="connectionFailed" element={<LoadingFailed />} />
+            <Route path="lostConnection" element={<LostConnection />} />
+            <Route path="editor" element={<Editor />} />
+        </Routes>
+    );
 }
 
 export default App;
