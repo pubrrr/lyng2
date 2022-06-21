@@ -41,14 +41,14 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nigtly
+          toolchain: nightly
           components: rustfmt, clippy
           override: true
       - name: rustfmt
         run: cd server && cargo fmt --all -- --check
       - uses: actions-rs/cargo@v1
         with:
-          toolchain:nightly
+          toolchain: nightly
           command: clippy
           args: --manifest-path server/Cargo.toml -- -D warnings
 
