@@ -1,3 +1,4 @@
+#![feature(box_patterns)]
 use std::fs::File;
 use std::thread;
 use std::thread::sleep;
@@ -12,6 +13,7 @@ use crate::application::Application;
 
 mod application;
 mod ast;
+
 
 fn main() {
     setup_logger();
