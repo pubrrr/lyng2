@@ -1,3 +1,6 @@
+#![feature(map_first_last)]
+#![feature(box_patterns)]
+#![feature(type_ascription)]
 use std::fs::File;
 use std::thread;
 use std::thread::sleep;

@@ -381,7 +381,9 @@ version = "0.1.0"
 dependencies = [
  "bigdecimal",
  "chrono",
+ "lazy_static",
  "log 0.4.17",
+ "num-bigint",
  "parser_combinator",
  "ron",
  "serde",

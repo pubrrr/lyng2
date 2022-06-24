@@ -109,7 +109,7 @@ mod atoms {
     use crate::ast::parser::parse;
     use crate::ast::parser::tests::number;
     use crate::ast::Localization;
-
+    
     #[test]
     fn integer() {
         let result = parse("123;".to_string());
@@ -169,7 +169,8 @@ mod add {
     use crate::ast::parser::parse;
     use crate::ast::parser::tests::number;
     use crate::ast::Localization;
-
+    use crate::ast::Values;
+    use std::fmt::Write;
     #[test]
     fn add_two_integers() {
         let result = parse("123 + 456".to_string());
@@ -180,12 +181,31 @@ mod add {
     }
 
     #[test]
+    fn add_two_variables_and_convert_to_values() {
+        let result : Values = parse("x + x".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 2 * x )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
     fn add_three_integers() {
         let result = parse("123 + 456 + 789".to_string());
 
         let expected = ((number(123).at(0) + number(456).at(5)).at(4) + number(789).at(11)).at(10);
 
         expected.assert_matches(result);
+    }
+    #[test]
+    fn add_two_variables_and_convert_to_values2() {
+        let result : Values = parse("(x+y)*(x-y) ".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + x +  x ^ 2 )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
     }
 
     #[test]
