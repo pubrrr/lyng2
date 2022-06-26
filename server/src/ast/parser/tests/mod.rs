@@ -181,16 +181,6 @@ mod add {
     }
 
     #[test]
-    fn add_two_variables_and_convert_to_values() {
-        let result : Values = parse("x + x".to_string()).unwrap().pop().unwrap().into();
-
-        let expected = "( 0 + 2 * x )";
-        let mut result_text = String::new();
-        write!(result_text, "{result}").unwrap();
-        assert_eq!(expected,result_text)
-    }
-
-    #[test]
     fn add_three_integers() {
         let result = parse("123 + 456 + 789".to_string());
 
@@ -198,15 +188,7 @@ mod add {
 
         expected.assert_matches(result);
     }
-    #[test]
-    fn add_two_variables_and_convert_to_values2() {
-        let result : Values = parse("(x+y)*(x-y) ".to_string()).unwrap().pop().unwrap().into();
 
-        let expected = "( 0 + x +  x ^ 2 )";
-        let mut result_text = String::new();
-        write!(result_text, "{result}").unwrap();
-        assert_eq!(expected,result_text)
-    }
 
     #[test]
     fn add_with_missing_first_summand() {

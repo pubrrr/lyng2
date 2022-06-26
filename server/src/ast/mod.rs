@@ -59,8 +59,8 @@ impl From<LocalizedSyntaxNode> for Values {
             SyntaxTree::Product(box left, box right) => Values::from(left).mul(right.into()),
             SyntaxTree::Exponent(box left, box right) => Values::from(left).exp(right.into()),
             SyntaxTree::Subtraction(box left, box right) => Values::from(left)
-                .add(Values::from(right))
-                .mul(Values::Number(BigDecimal::from(-1))),
+                .add(Values::from(right).mul(Values::Number(BigDecimal::from(-1)))),
+                
             SyntaxTree::Division(box left, box right) => Values::from(left)
                 .mul(Values::from(right).exp(Values::Number(BigDecimal::from(-1)))),
             SyntaxTree::Negation(box value) => {
@@ -168,32 +168,72 @@ impl Values {
         let one: BigDecimal = BigDecimal::from(1);
         let two: BigDecimal = BigDecimal::from(2);
         match (self, other) {
-            (Values::Number(x), other) | (other, Values::Number(x)) if x == zero => other,
-            (Values::Number(x), Values::Number(y)) => Values::Number(x + y),
+            (Values::Number(x), other) | (other, Values::Number(x)) if x == zero => {println!("add zero {other}") ;other},
+            (Values::Number(x), Values::Number(y)) => {println!("add num num {x} {y}") ;Values::Number(x + y)},
             (Values::Sum(cx, x), Values::Number(y)) | (Values::Number(y), Values::Sum(cx, x)) => {
+                println!("add sum num {:?} {:?}  {:?} ",cx, x ,y) ;
                 Values::Sum(cx + y, x)
             }
 
-            (Values::Sum(cx, x), Values::Sum(cy, y)) => Values::Sum(
+            (Values::Sum(cx, x), Values::Sum(cy, y)) => {
+                println!("add sum sum {:?} {:?}  {:?} {:?}",cx, x , cy ,y) ;
+                Values::Sum(
                 cx + cy,
                 x.iter().chain(y.iter()).fold(BTreeMap::new(), |a, b| {
-                    Self::entry_adder(a, b, BigDecimal::add_assign)
+                    Self::entry_adder(a, b, BigDecimal::add_assign )
                 }),
-            ),
+            )
+            },
+            (Values::Sum(cx, x), Values::Product(cy, mut y))
+                | (Values::Product(cy, mut y), Values::Sum(cx, x)) if y.len() == 1 => {
+                    println!("add sum prod len 1 {:?} {:?}  {:?} {:?}",cx, x , cy ,y) ;
+                    if let Some((mut key, val)) = y.pop_first() {
+                        key = key.exp(Values::Number(val));
+                        Values::Sum(cx,Self::entry_adder(x, (&key, &cy), BigDecimal::add_assign ))
+                    }
+                    else{unreachable!()}
+                    
+                },
             (Values::Sum(cx, x), Values::Product(cy, y))
-            | (Values::Product(cy, y), Values::Sum(cx, x)) => Values::Sum(
+            | (Values::Product(cy, y), Values::Sum(cx, x)) => {
+                println!("add sum prod {:?} {:?}  {:?} {:?}",cx, x , cy ,y) ;
+                Values::Sum(
                 cx,
                 Self::entry_adder(
                     x,
                     (&Values::Product(BigDecimal::one(), y), &cy),
                     BigDecimal::add_assign,
                 ),
-            ),
+            )},
 
-            (Values::Sum(cx, x), other) | (other, Values::Sum(cx, x)) => Values::Sum(
+            (Values::Sum(cx, x), other) | (other, Values::Sum(cx, x)) => {
+                println!("add sum other {:?} {:?}  {:?} ",cx, x , other) ;
+                Values::Sum(
                 cx,
                 Self::entry_adder(x, (&other, &one), BigDecimal::add_assign),
-            ),
+            )},
+
+            (Values::Product(cx, mut x), Values::Product(cy, mut y)) | (Values::Product(cy, mut y), Values::Product(cx, mut x))  if x == y => {
+                
+                Values::Sum(zero, BTreeMap::from([(Values::Product(one,x), cx+cy)]))
+            },
+
+            (Values::Product(cx, mut x), other) | (other, Values::Product(cx, mut x)) => {
+                //println!("add sum other {:?} {:?}  {:?} ",cx, x , other) ;
+                let map = BTreeMap::from([(other, one.clone())]);
+                if x.len()==1{
+                    if let Some((mut key, val)) = x.pop_first() {
+                        key = key.exp(Values::Number(val));
+                        Values::Sum(zero,Self::entry_adder(map, (&key, &cx), BigDecimal::add_assign ))
+                    }
+                    else{unreachable!()}
+                }else{
+
+                    Values::Sum(
+                    zero,
+                    Self::entry_adder(map, (&Values::Product(one,x), &cx), BigDecimal::add_assign),
+                )}
+            },
 
             (otherleft, otherright) if otherleft == otherright => {
                 Values::Sum(BigDecimal::zero(), BTreeMap::from([(otherleft, two)]))
@@ -265,12 +305,12 @@ impl Values {
             (Values::Product(cx, x), Values::Product(cy, y)) => Values::Product(
                 cx * cy,
                 x.iter().chain(y.iter()).fold(BTreeMap::new(), |a, b| {
-                    Self::entry_adder(a, b, BigDecimal::mul_assign)
+                    Self::entry_adder(a, b, BigDecimal::add_assign)
                 }),
             ),
             (Values::Product(cx, x), other) | (other, Values::Product(cx, x)) => Values::Product(
                 cx,
-                Self::entry_adder(x, (&other, &one), BigDecimal::mul_assign),
+                Self::entry_adder(x, (&other, &one), BigDecimal::add_assign),
             ),
 
             (otherleft, otherright) => {
@@ -413,4 +453,116 @@ mod tests {
 
         assert_eq!(expected, format!("{}", under_test));
     }
+
+
+
+    use bigdecimal::{BigDecimal, FromPrimitive};
+
+    use crate::ast::parser::parse;
+    use crate::ast::Localization;
+    use std::fmt::Write;
+
+
+    #[test]
+    fn add_two_variables_and_convert_to_values() {
+        let result : Values = parse("x + x".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 2 * x )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
+    fn add_several_variables_and_convert_to_values() {
+        let result : Values = parse("x+y+3+y+2*x+y+2-4*y".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 5 + 3 * x + -1 * y )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
+    fn mul_several_variables_and_convert_to_values() {
+        let result : Values = parse("x*x*y*y ".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 1 * x ^ 2 * y ^ 2 )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
+    fn mul_two_variables_add_and_convert_to_values() {
+        let result : Values = parse("x*y + y*x + 2*y*x + 3*x*y".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 7 * ( 1 * x ^ 1 * y ^ 1 ) )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
+    fn mul_several_variables_and_convert_to_valuesa() {
+        let result : Values = parse("x*y * y*x * 2*y*x * 3*x*y".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 6 * x ^ 4 * y ^ 4 )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
+    fn mul_several_variables_and_add_and_convert_to_values2() {
+        let result : Values = parse("x*y * y*x * 2*y*x * 3*x*y + 5*x*y * 4*y*x * 2*y*x * 3*x*y".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 126 * ( 1 * x ^ 4 * y ^ 4 ) )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
+    fn mul_several_variables_and_add_and_convert_to_values3() {
+        let result : Values = parse("x*y * y*x * y*2*x * x*y*3 + 5*x*y * 4*y*x * 2*y*x * 3*x*y".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 126 * ( 1 * x ^ 4 * y ^ 4 ) )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+
+    #[test]
+    fn square_of_sum() {
+        let result : Values = parse("(x+y)*(x+y)".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 2 * ( 1 * x ^ 1 * y ^ 1 ) + 1 * (x ^ 2) + 1 * (y ^ 2) )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    #[test]
+    fn square_of_diff() {
+        let result : Values = parse("(x+y)*(x-y)".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 0 * ( 1 * x ^ 1 * y ^ 1 ) + 1 * (x ^ 2) + -1 * (y ^ 2) )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+    #[test]
+    fn cube_of_sum() {
+        let result : Values = parse("(x+y)*(x+y)*(x+y)".to_string()).unwrap().pop().unwrap().into();
+
+        let expected = "( 0 + 3 * ( 1 * x ^ 2 * y ^ 1 ) + 3 * ( 1 * x ^ 1 * y ^ 2 ) + 1 * (x ^ 3) + 1 * (y ^ 3) )";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected,result_text)
+    }
+
+    
+
 }
