@@ -1,9 +1,9 @@
-use std::ops::{Add, Sub};
+/*use std::ops::{Add, Sub};
 
 use bigdecimal::BigDecimal;
 
 use crate::ast::parser::error::ErrorMessage;
-use crate::ast::{Localization, LocalizedSyntaxNode, SyntaxTree};
+use crate::ast::{Localization, LocalizedSyntaxNode, SyntaxTree,ExpressionSyntaxTree};
 
 impl From<(usize, usize)> for Localization {
     fn from((line, column): (usize, usize)) -> Self {
@@ -84,15 +84,15 @@ impl LocalizedSyntaxNode {
 
         let output = expected.node_matcher.clone();
         match (&self.tree, expected.node_matcher) {
-            (SyntaxTree::Number(actual), NodeMatcher::Number(expected)) => {
+            (SyntaxTree::Expression(ExpressionSyntaxTree::Number(actual)), NodeMatcher::Number(expected)) => {
                 assert_eq!(*actual, expected)
             }
             (
-                SyntaxTree::Sum(actual_left, actual_right),
+                SyntaxTree::Expression(ExpressionSyntaxTree::Sum(actual_left, actual_right)),
                 NodeMatcher::Sum(expected_left, expected_right),
             )
             | (
-                SyntaxTree::Subtraction(actual_left, actual_right),
+                SyntaxTree::Expression(ExpressionSyntaxTree::Subtraction(actual_left, actual_right)),
                 NodeMatcher::Subtraction(expected_left, expected_right),
             ) => {
                 actual_left.assert_matches(*expected_left);
@@ -1467,3 +1467,4 @@ mod combined_operations {
         assert_eq!(Ok(expected), result);
     }
 }
+*/

@@ -595,7 +595,7 @@ dependencies = [
 [[package]]
 name = "parser_combinator"
 version = "0.1.0"
-source = "git+https://github.com/ekinimo/Kirby?branch=main"
+source = "git+https://github.com/ekinimo/Kirby?branch=State#6f96ee06ddd3c2d77d12b8e75127dd443590a663"
 
 [[package]]
 name = "percent-encoding"

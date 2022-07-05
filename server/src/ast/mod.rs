@@ -7,6 +7,7 @@ use std::collections::HashMap;
 
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
+use std::marker::PhantomData;
 use std::ops::*;
 //use bigint::{BigInt,Sign,BigUInt};
 pub mod parser;
@@ -27,20 +28,94 @@ impl Localization {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub enum SyntaxTree {
-    Variable(String),
-    Number(BigDecimal),
-    Sum(Box<LocalizedSyntaxNode>, Box<LocalizedSyntaxNode>),
-    Product(Box<LocalizedSyntaxNode>, Box<LocalizedSyntaxNode>),
-    Exponent(Box<LocalizedSyntaxNode>, Box<LocalizedSyntaxNode>),
 
-    Subtraction(Box<LocalizedSyntaxNode>, Box<LocalizedSyntaxNode>),
-    Division(Box<LocalizedSyntaxNode>, Box<LocalizedSyntaxNode>),
-    Negation(Box<LocalizedSyntaxNode>),
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Node<Dummy,T>{
+    value:T,
+    location:(Localization,Localization),
+    phantom:PhantomData<Dummy>,
 }
 
-// TODO check whether necessary
+
+
+impl <Dummy,T> Node<Dummy,T>{
+
+    fn new(starts: Localization,ends:Localization, tree: T) -> Self {
+        Self {value:tree,location:(starts,ends),phantom:PhantomData }
+    }
+    fn starts_at(&mut self,pos:Localization){
+        self.location.0=pos
+        
+    }
+    fn ends_at(&mut self,pos:Localization){
+        self.location.1=pos
+            
+    }
+
+    fn at(&mut self,start:Localization,end:Localization){
+        self.location=(start,end)
+    }
+
+
+
+}
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EVar;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ENum;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EFun;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ESum;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EMul;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ESub;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EExp;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EDiv;
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ENeg;
+
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EExpression;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EAtom;
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EBracketedExpression;
+
+
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ExpressionSyntaxTree {
+    Variable(Node<EVar,String>),
+    Number(Node<ENum,BigDecimal>),
+    Fun(Node<EFun,(String, Vec<ExpressionSyntaxTree>)>),
+
+    Sum(Box<Node<ESum,(ExpressionSyntaxTree,ExpressionSyntaxTree)>>),
+    Product(Box<Node<EMul,(ExpressionSyntaxTree,ExpressionSyntaxTree)>>),
+    
+    Exponent(Box<Node<EExp,(ExpressionSyntaxTree,ExpressionSyntaxTree)>>),
+
+    Subtraction(Box<Node<ESub,(ExpressionSyntaxTree,ExpressionSyntaxTree)>>),
+    Division(Box<Node<EDiv,(ExpressionSyntaxTree,ExpressionSyntaxTree)>>),
+    Negation(Box<Node<ENeg,ExpressionSyntaxTree>>),
+}
+
+//TODO Knuth=Bendix algo (Given x+0 = 0, x-x=0 ,.... Reduce x+x-x)
+//#[derive(Clone, Debug, Eq, PartialEq)]
+//pub struct UserRuleScheme(Vec<(ExpressionSyntaxTree,ExpressionSyntaxTree)>);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum SyntaxTree {
+    Expression(ExpressionSyntaxTree),
+    //UserRule(UserRuleScheme,ExpressionSyntaxTree),
+}
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash, Ord, PartialOrd)]
 pub enum Values {
@@ -51,23 +126,9 @@ pub enum Values {
     Exponent(Box<(Values, Values)>),
 }
 
-impl From<LocalizedSyntaxNode> for Values {
-    fn from(node: LocalizedSyntaxNode) -> Values {
-        match node.tree {
-            SyntaxTree::Variable(value) => Values::Variable(value),
-            SyntaxTree::Number(value) => Values::Number(value),
-            SyntaxTree::Sum(box left, box right) => Values::from(left).add(right.into()),
-            SyntaxTree::Product(box left, box right) => Values::from(left).mul(right.into()),
-            SyntaxTree::Exponent(box left, box right) => Values::from(left).exp(right.into()),
-            SyntaxTree::Subtraction(box left, box right) => Values::from(left)
-                .add(Values::from(right).mul(Values::Number(BigDecimal::from(-1)))),
-            SyntaxTree::Division(box left, box right) => Values::from(left)
-                .mul(Values::from(right).exp(Values::Number(BigDecimal::from(-1)))),
-            SyntaxTree::Negation(box value) => {
-                Values::from(value).mul(Values::Number(BigDecimal::from(-1)))
-            }
-        }
-    }
+pub struct Context {
+    variable_dict: HashMap<String, (ExpressionSyntaxTree, Localization)>,
+    fun_dict: HashMap<String, (ExpressionSyntaxTree, Localization)>,
 }
 
 impl Display for Values {
@@ -90,7 +151,7 @@ impl Display for Values {
             Values::Number(value) => write!(f, "{}", value),
             Values::Sum(constant, vmap) => {
                 let mut vect = vec![];
-                let mut map = vmap.clone();
+                let map = vmap.clone();
                 if constant != &BigDecimal::zero() {
                     vect.push(format!("{constant}"));
                 }
@@ -105,8 +166,11 @@ impl Display for Values {
                         }
                     }
                 }
+                if vect.is_empty(){
+                    write!(f,"0")
 
-                vect.reverse();
+                }else 
+{                vect.reverse();
                 write!(f, "{}", vect.pop().unwrap());
                 vect.reverse();
                 write!(
@@ -121,10 +185,10 @@ impl Display for Values {
                             }
                         })
                         .collect::<String>()
-                )
+                )}
             }
             Values::Product(constant, vmap) => {
-                let mut map = vmap.clone();
+                let  map = vmap.clone();
                 if constant == &BigDecimal::zero() {
                     write!(f, "0")
                 } else {
@@ -143,11 +207,10 @@ impl Display for Values {
                                     .chars()
                                     .map(|x| {
                                         let ret = x.clone();
-                                        match supscriptmap.get(&x){
+                                        match supscriptmap.get(&x) {
                                             None => ret,
-                                            Some(r) => r.to_owned()
+                                            Some(r) => r.to_owned(),
                                         }
-
                                     })
                                     .collect::<String>()
                             );
@@ -264,7 +327,7 @@ impl Values {
                 //println!("Y === {:?}", y);
                 let res = Values::Sum(
                     cx,
-                    Self::entry_adder(
+                     Self::entry_adder(
                         x.clone(),
                         (&Values::Product(BigDecimal::one(), y), &cy),
                         BigDecimal::add_assign,
@@ -427,83 +490,183 @@ impl Values {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct LocalizedSyntaxNode {
-    location: Localization,
-    tree: SyntaxTree,
+
+trait Eval<Evaler,Ctx,Output>{
+    fn eval(&self,ctx:Ctx) -> Output; 
 }
 
-impl LocalizedSyntaxNode {
-    fn new(location: Localization, tree: SyntaxTree) -> Self {
-        Self { location, tree }
-    }
 
-    fn number<N: Into<BigDecimal>>(location: Localization, number: N) -> Self {
-        Self {
-            location,
-            tree: SyntaxTree::Number(number.into()),
+struct SimpleEvaluator;
+
+impl Eval<SimpleEvaluator,&mut Context,Values> for SyntaxTree{
+    fn eval(&self, ctx: &mut Context) -> Values {
+        match self{
+            SyntaxTree::Expression(expr) => expr.eval(ctx),
+        }
+        
+    }
+}
+impl Eval<SimpleEvaluator,&Context,Values> for ExpressionSyntaxTree{
+
+fn eval(&self, ctx: &Context) -> Values {
+        match &self {
+            ExpressionSyntaxTree::Number(value) => {
+                Values::Number(value.value.to_owned())
+            }
+            ExpressionSyntaxTree::Fun(value) =>
+
+                {
+                    todo!()
+
+                },
+
+            ExpressionSyntaxTree::Variable(Node{value, location:_ ,phantom:_}) => {
+                Values::Variable(value.to_owned())
+            }
+
+            ExpressionSyntaxTree::Sum(box Node{value:(left,right), location:_,phantom:_ }) => {
+                left.eval(ctx).add(right.eval(ctx))
+            }
+            ExpressionSyntaxTree::Product(box Node{value:(left,right), location:_,phantom:_ }) => {
+                left.eval(ctx).mul(right.eval(ctx))
+            }
+            ExpressionSyntaxTree::Exponent(
+                box Node{value:(left,right), location:_,phantom:_ }
+            ) => {
+                left.eval(ctx).exp(right.eval(ctx))
+            }
+            ExpressionSyntaxTree::Subtraction(
+                box Node{value:(left,right), location:_,phantom:_ }
+            ) => {
+                left.eval(ctx).add(
+                    right.eval(ctx)
+                        .mul(Values::Number(BigDecimal::from(-1))),
+                )
+            }
+            ExpressionSyntaxTree::Division(box Node{value:(left,right), location:_,phantom:_ }) => {
+                left.eval(ctx).mul(
+                    right.eval(ctx)
+                        .exp(Values::Number(BigDecimal::from(-1))),
+                )
+            }
+            ExpressionSyntaxTree::Negation(
+                box Node{value:value, location:_ ,phantom:_}
+            ) => {
+                value.eval(ctx).mul(Values::Number(BigDecimal::from(-1)))
+            }
         }
     }
 
-    #[cfg(test)]
-    fn variable(location: Localization, name: String) -> Self {
-        Self::new(location, SyntaxTree::Variable(name))
-    }
-
-    fn add(location: Localization, left: Self, right: Self) -> Self {
-        Self::new(location, SyntaxTree::Sum(Box::new(left), Box::new(right)))
-    }
-
-    fn mul(location: Localization, left: Self, right: Self) -> Self {
-        Self::new(
-            location,
-            SyntaxTree::Product(Box::new(left), Box::new(right)),
-        )
-    }
-
-    fn sub(location: Localization, left: Self, right: Self) -> Self {
-        Self::new(
-            location,
-            SyntaxTree::Subtraction(Box::new(left), Box::new(right)),
-        )
-    }
-
-    fn div(location: Localization, left: Self, right: Self) -> Self {
-        Self::new(
-            location,
-            SyntaxTree::Division(Box::new(left), Box::new(right)),
-        )
-    }
-
-    fn exp(location: Localization, left: Self, right: Self) -> Self {
-        Self::new(
-            location,
-            SyntaxTree::Exponent(Box::new(left), Box::new(right)),
-        )
-    }
-
-    fn neg(location: Localization, value: Self) -> Self {
-        Self::new(location, SyntaxTree::Negation(Box::new(value)))
-    }
 }
 
-impl Display for LocalizedSyntaxNode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.tree)
+
+impl ExpressionSyntaxTree {
+    
+
+
+
+
+
+    fn number(starts: Localization,ends:Localization, num: BigDecimal) -> Self {
+            
+            ExpressionSyntaxTree::Number(Node::new(starts, ends, num))
+        }
+    
+
+    
+    fn variable(starts: Localization,ends:Localization, name: String) -> Self {
+            ExpressionSyntaxTree::Variable(Node::new(starts, ends, name))
+        
     }
+
+    fn add(starts: Localization,ends:Localization, left: Self, right: Self) -> Self {
+        ExpressionSyntaxTree::Sum(Box::new(
+               Node::new(
+                   starts, ends,(left,right))
+               )
+           )
+    }
+
+    fn mul(starts: Localization,ends:Localization, left: Self, right: Self) -> Self {
+        ExpressionSyntaxTree::Product(Box::new(
+      Node::new(
+                starts, ends,(left,right))
+            )
+    )
+    }
+
+    fn sub(starts: Localization,ends:Localization, left: Self, right: Self) -> Self {
+        ExpressionSyntaxTree::Subtraction(Box::new(
+                Node::new(
+                    starts, ends,(left,right))
+                )
+            )
+    }
+
+    fn div(starts: Localization,ends:Localization, left: Self, right: Self) -> Self {
+            ExpressionSyntaxTree::Division(
+                Box::new(Node::new(
+                    starts, ends,(left,right))
+                )
+            )
+    }
+
+    fn exp(starts: Localization,ends:Localization, left: Self, right: Self) -> Self {
+            ExpressionSyntaxTree::Exponent(
+                Box::new(Node::new(
+                    starts, ends,(left,right))
+                )
+            )
+    }
+
+    fn neg(starts: Localization,ends:Localization, value: Self) -> Self
+    {
+        ExpressionSyntaxTree::Negation(
+            Box::new(Node::new(
+                starts, ends,value
+            )))
+    }
+
+    fn fun(starts: Localization,ends:Localization, name: String,vec: Vec<Self>) -> Self
+    {
+        ExpressionSyntaxTree::Fun(
+            Node::new(
+                starts, ends,(name,vec)
+            ))
+    }
+
+ 
 }
 
 impl Display for SyntaxTree {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            SyntaxTree::Variable(value) => write!(f, "{}", value),
-            SyntaxTree::Number(value) => write!(f, "{}", value),
-            SyntaxTree::Sum(left, right) => write!(f, "({} + {})", left, right),
-            SyntaxTree::Product(left, right) => write!(f, "({} * {})", left, right),
-            SyntaxTree::Exponent(left, right) => write!(f, "({} ^ {})", left, right),
-            SyntaxTree::Subtraction(left, right) => write!(f, "({} - {})", left, right),
-            SyntaxTree::Division(left, right) => write!(f, "({} / {})", left, right),
-            SyntaxTree::Negation(value) => write!(f, "-{}", value),
+            SyntaxTree::Expression(a) => write!(f, "{a}"),
+        }
+    }
+}
+
+impl Display for ExpressionSyntaxTree {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ExpressionSyntaxTree::Variable(Node{value, location:_ , phantom:_  }) => write!(f, "{}", value),
+            ExpressionSyntaxTree::Fun(Node{value:(name,value), location:_ , phantom:_  }
+            ) => write!(
+                f,
+                "{name}({})",
+                value
+                    .iter()
+                    .map(|x| format!("{x}"))
+                    .collect::<Vec<String>>()
+                    .join(",")
+            ),
+            ExpressionSyntaxTree::Number(Node{value, location:_ , phantom:_  }) => write!(f, "{}", value),
+            ExpressionSyntaxTree::Sum(box Node{value:(left,right), location:_ , phantom:_  }) => write!(f, "({} + {})", left, right),
+            ExpressionSyntaxTree::Product(box Node{value:(left,right), location:_ , phantom:_  }) => write!(f, "({} * {})", left, right),
+            ExpressionSyntaxTree::Exponent(box Node{value:(left,right), location:_ , phantom:_  }) => write!(f, "({} ^ {})", left, right),
+            ExpressionSyntaxTree::Subtraction(box Node{value:(left,right), location:_ , phantom:_  }) => write!(f, "({} - {})", left, right),
+            ExpressionSyntaxTree::Division(box Node{value:(left,right), location:_ , phantom:_  }) => write!(f, "({} / {})", left, right),
+            ExpressionSyntaxTree::Negation(box Node{value, location:_ , phantom:_  }) => write!(f, "-{}", value),
         }
     }
 }
@@ -514,24 +677,24 @@ mod tests {
 
     #[test]
     fn display() {
-        let under_test = LocalizedSyntaxNode::neg(
-            Localization::new(),
-            LocalizedSyntaxNode::add(
-                Localization::new(),
-                LocalizedSyntaxNode::number(Localization::new(), 1),
-                LocalizedSyntaxNode::mul(
-                    Localization::new(),
-                    LocalizedSyntaxNode::number(Localization::new(), 2),
-                    LocalizedSyntaxNode::exp(
-                        Localization::new(),
-                        LocalizedSyntaxNode::number(Localization::new(), 3),
-                        LocalizedSyntaxNode::sub(
-                            Localization::new(),
-                            LocalizedSyntaxNode::number(Localization::new(), 4),
-                            LocalizedSyntaxNode::div(
-                                Localization::new(),
-                                LocalizedSyntaxNode::number(Localization::new(), 5),
-                                LocalizedSyntaxNode::variable(Localization::new(), "x".to_string()),
+        let under_test = ExpressionSyntaxTree::neg(
+            Localization::new(),Localization::new(),
+            ExpressionSyntaxTree::add(
+                Localization::new(),Localization::new(),
+                ExpressionSyntaxTree::number(Localization::new(),Localization::new(), BigDecimal::from(1)),
+                ExpressionSyntaxTree::mul(
+                    Localization::new(),Localization::new(),
+                    ExpressionSyntaxTree::number(Localization::new(),Localization::new(), BigDecimal::from(2)),
+                    ExpressionSyntaxTree::exp(
+                        Localization::new(),Localization::new(),
+                        ExpressionSyntaxTree::number(Localization::new(),Localization::new(), BigDecimal::from(3)),
+                        ExpressionSyntaxTree::sub(
+                            Localization::new(),Localization::new(),
+                            ExpressionSyntaxTree::number(Localization::new(),Localization::new(), BigDecimal::from(4)),
+                            ExpressionSyntaxTree::div(
+                                Localization::new(),Localization::new(),
+                                ExpressionSyntaxTree::number(Localization::new(), Localization::new(),BigDecimal::from(5)),
+                                ExpressionSyntaxTree::variable(Localization::new(), Localization::new(),"x".to_string()),
                             ),
                         ),
                     ),
@@ -552,7 +715,15 @@ mod tests {
 
     #[test]
     fn add_two_variables_and_convert_to_values() {
-        let result: Values = parse("x + x".to_string()).unwrap().pop().unwrap().into();
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
+        let result: Values = parse("x + x".to_string())
+            .unwrap()
+            .pop()
+            .unwrap()
+            .eval(&mut ctx);
 
         let expected = "2 x";
         let mut result_text = String::new();
@@ -562,11 +733,15 @@ mod tests {
 
     #[test]
     fn add_several_variables_and_convert_to_values() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("x+y+3+y+2*x+y+2-4*y".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "5 + 3 x - y";
         let mut result_text = String::new();
@@ -576,7 +751,15 @@ mod tests {
 
     #[test]
     fn mul_several_variables_and_convert_to_values() {
-        let result: Values = parse("x*x*y*y ".to_string()).unwrap().pop().unwrap().into();
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
+        let result: Values = parse("x*x*y*y ".to_string())
+            .unwrap()
+            .pop()
+            .unwrap()
+            .eval(&mut ctx);
 
         let expected = "x² y²";
         let mut result_text = String::new();
@@ -586,11 +769,15 @@ mod tests {
 
     #[test]
     fn mul_two_variables_add_and_convert_to_values() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("x*y + y*x + 2*y*x + 3*x*y".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "7 x y"; //; "7 x y";//; "( 0 + 7 * ( 1 * x ^ 1 * y ^ 1 ) )";
         let mut result_text = String::new();
@@ -600,11 +787,15 @@ mod tests {
 
     #[test]
     fn mul_several_variables_and_convert_to_valuesa() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("x*y * y*x * 2*y*x * 3*x*y".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "6 x⁴ y⁴"; //; "( 6 * x ^ 4 * y ^ 4 )";
         let mut result_text = String::new();
@@ -614,12 +805,17 @@ mod tests {
 
     #[test]
     fn mul_several_variables_and_add_and_convert_to_values2() {
+
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values =
             parse("x*y * y*x * 2*y*x * 3*x*y + 5*x*y * 4*y*x * 2*y*x * 3*x*y".to_string())
                 .unwrap()
                 .pop()
                 .unwrap()
-                .into();
+            .eval(&mut ctx);
 
         let expected = "126 x⁴ y⁴";
         let mut result_text = String::new();
@@ -629,12 +825,16 @@ mod tests {
 
     #[test]
     fn mul_several_variables_and_add_and_convert_to_values3() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values =
             parse("x*y * y*x * y*2*x * x*y*3 + 5*x*y * 4*y*x * 2*y*x * 3*x*y".to_string())
                 .unwrap()
                 .pop()
                 .unwrap()
-                .into();
+            .eval(&mut ctx);
 
         let expected = "126 x⁴ y⁴";
         let mut result_text = String::new();
@@ -644,11 +844,15 @@ mod tests {
 
     #[test]
     fn square_of_sum() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x+y)*(x+y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "2 x y + x² + y²";
         let mut result_text = String::new();
@@ -657,12 +861,34 @@ mod tests {
     }
 
     #[test]
+    fn for_ranja() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
+        let result: Values = parse("(x-y)*(x+y)+(y-x)*(x+y)".to_string())
+            .unwrap()
+            .pop()
+            .unwrap()
+            .eval(&mut ctx);
+
+        let expected = "x² - y²";
+        let mut result_text = String::new();
+        write!(result_text, "{result}").unwrap();
+        assert_eq!(expected, result_text)
+    }
+
+    #[test]
     fn diff_of_square() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x+y)*(x-y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "x² - y²";
         let mut result_text = String::new();
@@ -672,11 +898,15 @@ mod tests {
 
     #[test]
     fn diff_of_cubes() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x-y)*(x^2+y^2+x*y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "x³ - y³";
         let mut result_text = String::new();
@@ -686,11 +916,15 @@ mod tests {
 
     #[test]
     fn cube_of_sum() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x+y)*(x+y)*(x+y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "3 x y² + 3 x² y + x³ + y³";
         let mut result_text = String::new();
@@ -700,11 +934,15 @@ mod tests {
 
     #[test]
     fn cube_of_diff() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x-y)*(x-y)*(x-y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "3 x y² + -3 x² y + x³ - y³";
         let mut result_text = String::new();
@@ -714,11 +952,15 @@ mod tests {
 
     #[test]
     fn fourth_of_sum() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x+y)*(x+y)*(x+y)*(x+y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "4 x y³ + 6 x² y² + 4 x³ y + x⁴ + y⁴";
         let mut result_text = String::new();
@@ -728,11 +970,15 @@ mod tests {
 
     #[test]
     fn fifth_of_sum() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x+y)*(x+y)*(x+y)*(x+y)*(x+y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
         let expected = "5 x y⁴ + 10 x² y³ + 10 x³ y² + 5 x⁴ y + x⁵ + y⁵";
         let mut result_text = String::new();
@@ -742,13 +988,17 @@ mod tests {
 
     #[test]
     fn sixth_of_sum() {
+        let mut ctx = Context {
+            variable_dict: HashMap::new(),
+            fun_dict: HashMap::new(),
+        };
         let result: Values = parse("(x+y)*(x+y)*(x+y)*(x+y)*(x+y)*(x+y)".to_string())
             .unwrap()
             .pop()
             .unwrap()
-            .into();
+            .eval(&mut ctx);
 
-        let expected ="6 x y⁵ + 15 x² y⁴ + 20 x³ y³ + 15 x⁴ y² + 6 x⁵ y + x⁶ + y⁶";
+        let expected = "6 x y⁵ + 15 x² y⁴ + 20 x³ y³ + 15 x⁴ y² + 6 x⁵ y + x⁶ + y⁶";
         let mut result_text = String::new();
         write!(result_text, "{result}").unwrap();
         assert_eq!(expected, result_text)
