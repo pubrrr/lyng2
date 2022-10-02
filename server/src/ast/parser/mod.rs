@@ -284,7 +284,7 @@ fn parse_expression_in_brackets(input: CharWrapper) -> ParseResult {
 
 fn parse_atom(input: CharWrapper) -> ParseResult {
     let integer_parser = parse_natural_numbers.transform(move |numeric_string| {
-        LocalizedSyntaxNode::number(input.start, BigDecimal::from_str(&*numeric_string).unwrap())
+        LocalizedSyntaxNode::number(input.start, BigDecimal::from_str(&numeric_string).unwrap())
     });
 
     let float_parser = parse_float.transform(move |x| LocalizedSyntaxNode::number(input.start, x));
@@ -314,7 +314,7 @@ fn parse_float(
 
     let to_float = |(leading, separator, fractional): (String, Chars, String)| {
         let num = format!("{}{}{}", leading, separator.as_str(), fractional.as_str());
-        BigDecimal::from_str(&*num).unwrap()
+        BigDecimal::from_str(&num).unwrap()
     };
 
     Triple::new(
