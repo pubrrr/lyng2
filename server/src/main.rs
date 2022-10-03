@@ -1,24 +1,48 @@
+use std::convert::Infallible;
 use std::fs::File;
 
+use async_graphql::http::GraphiQLSource;
+use async_graphql::Request;
+use async_graphql_warp::GraphQLResponse;
+use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use log::{debug, error, info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
+use warp::http::Response;
 use warp::ws::{Message, WebSocket, Ws};
 use warp::Filter;
 
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
-
 use crate::application::Application;
+use crate::chat::{build_schema, Schema};
 
 mod application;
 mod ast;
+mod chat;
 
 #[tokio::main]
 async fn main() {
     setup_logger();
 
-    let routes = warp::path("math")
+    let math_websocket_route = warp::path("math")
         .and(warp::ws())
         .map(|handshake: Ws| handshake.on_upgrade(handle_connection));
+
+    let chat_routes = async_graphql_warp::graphql(build_schema()).and_then(
+        |(schema, request): (Schema, Request)| async move {
+            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
+        },
+    );
+
+    let graphiql = warp::path::end().and(warp::get()).map(|| {
+        Response::builder()
+            .header("content-type", "text/html")
+            .body(
+                GraphiQLSource::build()
+                    .endpoint("http://localhost:8080")
+                    .finish(),
+            )
+    });
+
+    let routes = math_websocket_route.or(chat_routes).or(graphiql);
 
     warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
 }

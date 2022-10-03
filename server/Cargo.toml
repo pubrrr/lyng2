@@ -4,6 +4,8 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-graphql = "4.0.14"
+async-graphql-warp = "4.0.14"
 bigdecimal = "0.3.0"
 chrono = "0.4.19"
 futures-util = "0.3.24"
