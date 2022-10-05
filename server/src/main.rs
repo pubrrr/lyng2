@@ -1,89 +1,69 @@
 use std::fs::File;
-use std::thread;
-use std::thread::sleep;
-use std::time::Duration;
 
-use log::{debug, error, info, warn, LevelFilter};
+use log::{debug, error, info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
-use websocket::sync::Server;
-use websocket::{CloseData, OwnedMessage, WebSocketError, WebSocketResult};
+use warp::ws::{Message, WebSocket, Ws};
+use warp::Filter;
+
+use futures_util::{SinkExt, StreamExt, TryFutureExt};
 
 use crate::application::Application;
 
 mod application;
 mod ast;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     setup_logger();
 
-    let mut server = Server::bind("127.0.0.1:8080").unwrap();
+    let routes = warp::path("math")
+        .and(warp::ws())
+        .map(|handshake: Ws| handshake.on_upgrade(handle_connection));
 
-    while let Ok(request) = server.accept() {
-        let client = request.accept().unwrap();
-
-        let ip = client.peer_addr().unwrap();
-        info!("{} connected", ip);
-
-        let (mut reader, mut writer) = client.split().unwrap();
-
-        thread::Builder::new()
-            .name(format!("WebSocketHandler-{ip}"))
-            .spawn(move || {
-                let mut connection_closed = false;
-                while !connection_closed {
-                    for message in reader.incoming_messages() {
-                        info!("got message: {message:?}");
-                        let process_result = process(message);
-
-                        if let Some(response) = process_result {
-                            writer.send_message(&response).unwrap();
-
-                            if let OwnedMessage::Close(data) = response {
-                                info!("{} disconnected: {:?}", ip, data);
-                                connection_closed = true;
-                                break;
-                            }
-                        }
-                    }
-
-                    sleep(Duration::from_millis(100));
-                }
-                info!("shutting down thread for ip: {:?}", ip);
-            })
-            .unwrap();
-    }
+    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
 }
 
-fn process(message: WebSocketResult<OwnedMessage>) -> Option<OwnedMessage> {
-    match message {
-        Ok(message) => match message {
-            OwnedMessage::Text(text) => {
-                debug!("text: {text}");
+async fn handle_connection(websocket: WebSocket) {
+    info!("New websocket connection");
 
-                let mut application = Application::create();
-                let result = application.run(text);
+    let (mut writer, mut reader) = websocket.split();
 
-                let result = ron::to_string(&result).unwrap();
-                debug!("result: {result}");
+    tokio::task::spawn(async move {
+        while let Some(incoming) = reader.next().await {
+            let message: Message = match incoming {
+                Ok(msg) => msg,
+                Err(e) => {
+                    error!("websocket error: {}", e);
+                    break;
+                }
+            };
 
-                Some(OwnedMessage::Text(result))
-            }
-            OwnedMessage::Close(data) => Some(OwnedMessage::Close(data)),
-            OwnedMessage::Ping(ping) => Some(OwnedMessage::Pong(ping)),
-            _ => {
-                warn!("{:?}", message);
-                unimplemented!("{:?}", message)
-            }
-        },
-        Err(WebSocketError::NoDataAvailable) => None,
-        Err(err) => {
-            error!("{}", err);
-            Some(OwnedMessage::Close(Some(CloseData::new(
-                1001,
-                err.to_string(),
-            ))))
+            let response = process(message);
+
+            writer
+                .send(response)
+                .unwrap_or_else(|e| {
+                    error!("websocket send error: {}", e);
+                })
+                .await;
         }
-    }
+    });
+}
+
+fn process(message: Message) -> Message {
+    let response = match message.to_str() {
+        Ok(input) => {
+            debug!("text: {input}");
+            let result = Application::create().run(input.to_string());
+
+            let result = ron::to_string(&result).unwrap();
+            debug!("result: {result}");
+            result
+        }
+        Err(_) => format!("Can't deal with message: {message:?}"),
+    };
+
+    Message::text(response)
 }
 
 fn setup_logger() {
