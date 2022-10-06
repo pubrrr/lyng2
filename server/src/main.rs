@@ -1,15 +1,15 @@
 use std::convert::Infallible;
 use std::fs::File;
 
-use async_graphql::http::GraphiQLSource;
+use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource};
 use async_graphql::Request;
-use async_graphql_warp::GraphQLResponse;
+use async_graphql_warp::{graphql_subscription, GraphQLResponse};
 use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use log::{debug, error, info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
 use warp::http::Response;
 use warp::ws::{Message, WebSocket, Ws};
-use warp::Filter;
+use warp::{path, Filter};
 
 use crate::application::Application;
 use crate::chat::{build_schema, Schema};
@@ -26,25 +26,40 @@ async fn main() {
         .and(warp::ws())
         .map(|handshake: Ws| handshake.on_upgrade(handle_connection));
 
-    let chat_routes = async_graphql_warp::graphql(build_schema()).and_then(
-        |(schema, request): (Schema, Request)| async move {
-            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
-        },
-    );
+    let schema = build_schema();
 
-    let graphiql = warp::path::end().and(warp::get()).map(|| {
+    let chat_routes = async_graphql_warp::graphql(schema.clone())
+        .and(warp::path("chat"))
+        .and_then(|(schema, request): (Schema, Request)| async move {
+            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
+        });
+
+    let graphiql = warp::path("graphiql").and(warp::get()).map(|| {
         Response::builder()
             .header("content-type", "text/html")
             .body(
                 GraphiQLSource::build()
-                    .endpoint("http://localhost:8080")
+                    .endpoint("/chat/")
+                    .subscription_endpoint("ws://localhost:8000/chat")
                     .finish(),
             )
     });
 
-    let routes = math_websocket_route.or(chat_routes).or(graphiql);
+    let playground = warp::path("playground").and(warp::get()).map(|| {
+        let config = GraphQLPlaygroundConfig::new("/chat/")
+            .subscription_endpoint("ws://localhost:8000/chat/");
+        Response::builder()
+            .header("content-type", "text/html")
+            .body(playground_source(config))
+    });
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
+    let routes = math_websocket_route
+        .or(graphql_subscription(schema).and(warp::path("chat")))
+        .or(chat_routes)
+        .or(playground)
+        .or(graphiql);
+
+    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }
 
 async fn handle_connection(websocket: WebSocket) {
