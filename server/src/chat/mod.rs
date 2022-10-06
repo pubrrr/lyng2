@@ -1,8 +1,7 @@
 use async_graphql::async_stream::stream;
-use async_graphql::{Context, EmptySubscription, Object, Subscription};
+use async_graphql::{Context, Object, Subscription};
 use futures_util::Stream;
 use log::{debug, info};
-use std::ops::Deref;
 use std::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
@@ -45,14 +44,24 @@ impl Mutation {
         let new_user = format!("User#{id}", id = users.len());
         users.push(new_user.clone());
 
-        let mut streams = ctx.data_unchecked::<Streams>().lock().unwrap();
-        for stream in streams.deref() {
-            debug!("sending new user");
-            stream.send(new_user.clone()).unwrap();
-        }
+        let mut subscribers = ctx.data_unchecked::<Streams>().lock().unwrap();
+        notify_subscribers(&new_user, &mut subscribers);
         info!("new user registered: {new_user}");
 
         new_user
+    }
+}
+
+fn notify_subscribers(new_user: &str, subscribers: &mut Vec<UnboundedSender<String>>) {
+    for (i, stream) in subscribers.clone().iter().enumerate() {
+        debug!("sending new user");
+        match stream.send(new_user.to_string()) {
+            Err(_) if stream.is_closed() => {
+                debug!("stream disconnected - removing it");
+                subscribers.remove(i);
+            }
+            _ => {}
+        };
     }
 }
 

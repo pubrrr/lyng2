@@ -9,7 +9,7 @@ use log::{debug, error, info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
 use warp::http::Response;
 use warp::ws::{Message, WebSocket, Ws};
-use warp::{path, Filter};
+use warp::Filter;
 
 use crate::application::Application;
 use crate::chat::{build_schema, Schema};
@@ -40,14 +40,14 @@ async fn main() {
             .body(
                 GraphiQLSource::build()
                     .endpoint("/chat/")
-                    .subscription_endpoint("ws://localhost:8000/chat")
+                    .subscription_endpoint("ws://localhost:8080/chat")
                     .finish(),
             )
     });
 
     let playground = warp::path("playground").and(warp::get()).map(|| {
         let config = GraphQLPlaygroundConfig::new("/chat/")
-            .subscription_endpoint("ws://localhost:8000/chat/");
+            .subscription_endpoint("ws://localhost:8080/chat/");
         Response::builder()
             .header("content-type", "text/html")
             .body(playground_source(config))
@@ -59,7 +59,7 @@ async fn main() {
         .or(playground)
         .or(graphiql);
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
+    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
 }
 
 async fn handle_connection(websocket: WebSocket) {
