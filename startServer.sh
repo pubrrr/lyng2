@@ -2,4 +2,4 @@
 
 set -xe
 
-(cd server && cargo run )
+(cd server && cargo run --bin lyng2)

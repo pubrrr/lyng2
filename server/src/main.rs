@@ -11,12 +11,8 @@ use warp::http::Response;
 use warp::ws::{Message, WebSocket, Ws};
 use warp::Filter;
 
-use crate::application::Application;
-use crate::chat::{build_schema, Schema};
-
-mod application;
-mod ast;
-mod chat;
+use lyng2::application::Application;
+use lyng2::chat::{build_schema, Schema};
 
 #[tokio::main]
 async fn main() {
