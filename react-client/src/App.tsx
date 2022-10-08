@@ -4,14 +4,14 @@ import Editor, { websocketUrl } from "./Editor";
 import LostConnection from "./LostConnection";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { Link, Route, Routes } from "react-router-dom";
-import { Chat } from "./chat";
+import { ChatApp } from "./chat";
 
 function App() {
     return (
         <Routes>
             <Route path="/" element={<Menu />} />
             <Route path="lyng" element={<LyngApp />} />
-            <Route path="chat" element={<Chat />} />
+            <Route path="chat" element={<ChatApp />} />
         </Routes>
     );
 }

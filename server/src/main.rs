@@ -35,25 +35,34 @@ async fn main() {
             .header("content-type", "text/html")
             .body(
                 GraphiQLSource::build()
-                    .endpoint("/chat/")
-                    .subscription_endpoint("ws://localhost:8080/chat")
+                    .endpoint("chat/")
+                    .subscription_endpoint("ws://localhost:8080/api/chat")
                     .finish(),
             )
     });
 
     let playground = warp::path("playground").and(warp::get()).map(|| {
-        let config = GraphQLPlaygroundConfig::new("/chat/")
-            .subscription_endpoint("ws://localhost:8080/chat/");
+        let config = GraphQLPlaygroundConfig::new("chat/")
+            .subscription_endpoint("ws://localhost:8080/api/chat/");
         Response::builder()
             .header("content-type", "text/html")
             .body(playground_source(config))
     });
 
-    let routes = math_websocket_route
-        .or(graphql_subscription(schema).and(warp::path("chat")))
-        .or(chat_routes)
-        .or(playground)
-        .or(graphiql);
+    let static_files = warp::get().and(warp::fs::dir("../react-client/build"));
+    let index_html = warp::get().and(warp::fs::file("../react-client/build/index.html"));
+
+    let api_routes = warp::path("api").and(
+        math_websocket_route
+            .or(graphql_subscription(schema).and(warp::path("chat")))
+            .or(chat_routes)
+            .or(playground)
+            .or(graphiql),
+    );
+    let routes = api_routes
+        .or(static_files)
+        .or(index_html)
+        .with(warp::log("lyng::api"));
 
     warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
 }
