@@ -8,12 +8,11 @@ use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use log::{debug, error, info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
 use warp::http::Response;
-use warp::path::Exact;
 use warp::ws::{Message, WebSocket, Ws};
 use warp::{Filter, Rejection, Reply};
 
 use lyng2::application::Application;
-use lyng2::chat::{build_schema, Mutation, Query, Schema, Subscription};
+use lyng2::chat::{build_schema, Schema};
 
 #[tokio::main]
 async fn main() {
