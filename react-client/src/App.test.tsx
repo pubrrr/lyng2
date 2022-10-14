@@ -1,64 +1,52 @@
-import useWebSocket from "react-use-websocket";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import App from "./App";
-import { act } from "react-dom/test-utils";
 import Editor from "./Editor";
-import LoadingFailed from "./LoadingFailed";
 import LostConnection from "./LostConnection";
-import { BrowserRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router-dom";
 
 jest.mock("react-use-websocket");
+const mockUseWebSocket = useWebSocket as jest.Mock;
 jest.mock("./Editor");
-jest.mock("./LoadingFailed");
 jest.mock("./LostConnection");
-
-const useWebSocketMock = useWebSocket as jest.Mock;
 
 function renderApp() {
     render(
-        <BrowserRouter>
+        <MemoryRouter>
             <App />
-        </BrowserRouter>
+        </MemoryRouter>
     );
 }
 
+function goToEditor() {
+    fireEvent.click(screen.getByText("Lyng"));
+}
+
 test("initially renders loading screen", () => {
+    mockUseWebSocket.mockReturnValue({ readyState: ReadyState.CONNECTING });
+
     renderApp();
+    goToEditor();
 
-    const laodingElement = screen.getByText(/Loading/i);
-    expect(laodingElement).toBeInTheDocument();
-});
-
-test("initializes Websocket", () => {
-    renderApp();
-
-    expect(useWebSocketMock).toBeCalled();
+    const loadingElement = screen.getByText(/Loading/i);
+    expect(loadingElement).toBeInTheDocument();
 });
 
 test("changes to editor when websocket connected", () => {
-    renderApp();
+    mockUseWebSocket.mockReturnValue({ readyState: ReadyState.OPEN });
 
-    act(() => {
-        useWebSocketMock.mock.calls[0][1].onOpen();
-    });
+    renderApp();
+    goToEditor();
+
     expect(Editor).toBeCalled();
 });
 
-test("changes to loading failed when websocket connection fails", () => {
-    renderApp();
-
-    act(() => {
-        useWebSocketMock.mock.calls[0][1].onError();
-    });
-    expect(LoadingFailed).toBeCalled();
-});
-
 test("changes to lost connection when websocket connection terminates", () => {
-    renderApp();
+    mockUseWebSocket.mockReturnValue({ readyState: ReadyState.CLOSED });
 
-    act(() => {
-        useWebSocketMock.mock.calls[0][1].onClose();
-    });
+    renderApp();
+    goToEditor();
+
     expect(LostConnection).toBeCalled();
 });

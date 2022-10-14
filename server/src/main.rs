@@ -1,24 +1,68 @@
+use std::convert::Infallible;
 use std::fs::File;
 
+use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource};
+use async_graphql::Request;
+use async_graphql_warp::{graphql_subscription, GraphQLResponse};
+use futures_util::{SinkExt, StreamExt, TryFutureExt};
 use log::{debug, error, info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
+use warp::http::Response;
 use warp::ws::{Message, WebSocket, Ws};
 use warp::Filter;
 
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
-
-use crate::application::Application;
-
-mod application;
-mod ast;
+use lyng2::application::Application;
+use lyng2::chat::{build_schema, Schema};
 
 #[tokio::main]
 async fn main() {
     setup_logger();
 
-    let routes = warp::path("math")
+    let math_websocket_route = warp::path("math")
         .and(warp::ws())
         .map(|handshake: Ws| handshake.on_upgrade(handle_connection));
+
+    let schema = build_schema();
+
+    let chat_routes = async_graphql_warp::graphql(schema.clone())
+        .and(warp::path("chat"))
+        .and_then(|(schema, request): (Schema, Request)| async move {
+            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
+        });
+
+    let graphiql = warp::path("graphiql").and(warp::get()).map(|| {
+        Response::builder()
+            .header("content-type", "text/html")
+            .body(
+                GraphiQLSource::build()
+                    .endpoint("chat/")
+                    .subscription_endpoint("ws://localhost:8080/api/chat")
+                    .finish(),
+            )
+    });
+
+    let playground = warp::path("playground").and(warp::get()).map(|| {
+        let config = GraphQLPlaygroundConfig::new("chat/")
+            .subscription_endpoint("ws://localhost:8080/api/chat/");
+        Response::builder()
+            .header("content-type", "text/html")
+            .body(playground_source(config))
+    });
+
+    let static_files = warp::get().and(warp::fs::dir("../react-client/build"));
+    let index_html = warp::get().and(warp::fs::file("../react-client/build/index.html"));
+
+    let api_routes = warp::path("api").and(
+        math_websocket_route
+            .or(graphql_subscription(schema).and(warp::path("chat")))
+            .or(chat_routes)
+            .or(playground)
+            .or(graphiql),
+    );
+    let routes = api_routes
+        .or(static_files)
+        .or(index_html)
+        .with(warp::log("lyng::api"));
 
     warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
 }
