@@ -1,4 +1,4 @@
-use crate::ast::Localization;
+use crate::math::ast::Localization;
 use std::cmp::Ordering;
 use std::fmt;
 use std::fmt::{Display, Formatter};

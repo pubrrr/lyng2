@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::ast::parser::parse;
+use crate::math::ast::parser::parse;
 
 #[derive(Serialize)]
 pub enum CommandResult {
@@ -31,7 +31,7 @@ impl Application {
 
 #[cfg(test)]
 mod tests {
-    use crate::application::CommandResult;
+    use crate::math::application::CommandResult;
 
     #[test]
     fn deserialize_success() {
