@@ -1,11 +1,17 @@
 use std::sync::Mutex;
 
 use async_graphql::async_stream::stream;
+use async_graphql::extensions::Logger;
 use async_graphql::{Context, Object, SimpleObject, Subscription};
 use futures_util::Stream;
 use log::{debug, info};
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
+use warp::http::header::SET_COOKIE;
+
+use crate::chat::auth::{create_auth_token, AuthExtensionFactory, AUTH_COOKIE_NAME};
+
+pub mod auth;
 
 type Users = Mutex<Vec<User>>;
 type Streams = Mutex<Vec<UnboundedSender<User>>>;
@@ -22,6 +28,8 @@ pub fn build_schema() -> Schema {
     Schema::build(Query, Mutation, Subscription)
         .data(Users::default())
         .data(Streams::default())
+        .extension(Logger)
+        .extension(AuthExtensionFactory)
         .finish()
 }
 
@@ -30,7 +38,6 @@ pub struct Query;
 #[Object]
 impl Query {
     async fn get_users<'a>(&self, ctx: &Context<'a>) -> Vec<User> {
-        info!("getting all users");
         ctx.data_unchecked::<Users>().lock().unwrap().clone()
     }
 }
@@ -40,7 +47,6 @@ pub struct Mutation;
 #[Object]
 impl Mutation {
     async fn register(&self, ctx: &Context<'_>, name: String) -> User {
-        info!("registering");
         let mut users = ctx.data_unchecked::<Users>().lock().unwrap();
         let new_user = User {
             id: format!("User#{id}", id = users.len()),
@@ -51,6 +57,12 @@ impl Mutation {
         let mut subscribers = ctx.data_unchecked::<Streams>().lock().unwrap();
         notify_subscribers(new_user.clone(), &mut subscribers);
         info!("new user registered: {new_user:?}");
+
+        let auth_cookie = create_auth_token(&new_user);
+        ctx.insert_http_header(
+            SET_COOKIE,
+            format!("{AUTH_COOKIE_NAME}={auth_cookie}; SameSite=Strict; Secure"),
+        );
 
         new_user
     }

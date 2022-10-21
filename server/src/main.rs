@@ -10,6 +10,7 @@ use warp::http::Response;
 use warp::ws::Ws;
 use warp::{Filter, Rejection, Reply};
 
+use lyng2::chat::auth::with_auth;
 use lyng2::chat::{build_schema, Schema};
 use lyng2::math::handle_websocket_connection;
 
@@ -46,9 +47,14 @@ fn lyng2_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone
 fn chat_route(schema: Schema) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     async_graphql_warp::graphql(schema)
         .and(warp::path("chat"))
-        .and_then(|(schema, request): (Schema, Request)| async move {
-            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
-        })
+        .and(with_auth())
+        .and_then(
+            |(schema, request): (Schema, Request), auth_token| async move {
+                Ok::<_, Infallible>(GraphQLResponse::from(
+                    schema.execute(request.data(auth_token)).await,
+                ))
+            },
+        )
 }
 
 fn graphiql_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
