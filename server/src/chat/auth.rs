@@ -39,11 +39,9 @@ pub fn with_auth() -> impl Filter<Extract = (Option<AuthUser>,), Error = Infalli
 
         let mut validation = Validation::new(Algorithm::HS512);
         validation.required_spec_claims = HashSet::new();
-        let result = decode(&cookie?, &DecodingKey::from_secret(JWT_SECRET), &validation);
+        let decoded_token = decode(&cookie?, &DecodingKey::from_secret(JWT_SECRET), &validation);
 
-        info!("{result:?}");
-
-        result.ok()?.claims
+        decoded_token.ok()?.claims
     })
 }
 

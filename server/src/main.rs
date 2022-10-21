@@ -1,9 +1,10 @@
+use std::any::Any;
 use std::convert::Infallible;
 use std::fs::File;
 
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource};
-use async_graphql::Request;
-use async_graphql_warp::{graphql_subscription, GraphQLResponse};
+use async_graphql::{Data, Request};
+use async_graphql_warp::{graphql_protocol, GraphQLResponse, GraphQLWebSocket};
 use log::LevelFilter;
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
 use warp::http::Response;
@@ -30,12 +31,42 @@ fn api_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone 
     let schema = build_schema();
 
     let routes = lyng2_route()
-        .or(graphql_subscription(schema.clone()).and(warp::path("chat")))
+        .or(chat_subscription_route(schema.clone()))
         .or(chat_route(schema))
         .or(playground_route())
         .or(graphiql_route());
 
     warp::path("api").and(routes)
+}
+
+fn chat_subscription_route(
+    schema: Schema,
+) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::ws()
+        .and(warp::path("chat"))
+        .and(graphql_protocol())
+        .and(with_auth())
+        .map(move |ws: Ws, protocol, auth_token| {
+            let schema = schema.clone();
+
+            let reply = ws.on_upgrade(move |socket| {
+                GraphQLWebSocket::new(socket, schema, protocol)
+                    .with_data(data_with(auth_token))
+                    .serve()
+            });
+
+            warp::reply::with_header(
+                reply,
+                "Sec-WebSocket-Protocol",
+                protocol.sec_websocket_protocol(),
+            )
+        })
+}
+
+fn data_with<D: Any + Send + Sync>(d: D) -> Data {
+    let mut data = Data::default();
+    data.insert(d);
+    data
 }
 
 fn lyng2_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
