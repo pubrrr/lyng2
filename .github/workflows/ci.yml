@@ -1,4 +1,4 @@
-name: Rust
+name: Lyng2
 
 on:
   push:
@@ -41,7 +41,7 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: nightly
+          toolchain: stable
           components: rustfmt, clippy
           override: true
       - name: rustfmt

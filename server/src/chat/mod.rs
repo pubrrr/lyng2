@@ -1,15 +1,22 @@
+use std::sync::Mutex;
+
 use async_graphql::async_stream::stream;
-use async_graphql::{Context, Object, Subscription};
+use async_graphql::{Context, Object, SimpleObject, Subscription};
 use futures_util::Stream;
 use log::{debug, info};
-use std::sync::Mutex;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
 
-type Users = Mutex<Vec<String>>;
-type Streams = Mutex<Vec<UnboundedSender<String>>>;
+type Users = Mutex<Vec<User>>;
+type Streams = Mutex<Vec<UnboundedSender<User>>>;
 
 pub type Schema = async_graphql::Schema<Query, Mutation, Subscription>;
+
+#[derive(Clone, Debug, SimpleObject)]
+pub struct User {
+    id: String,
+    name: String,
+}
 
 pub fn build_schema() -> Schema {
     Schema::build(Query, Mutation, Subscription)
@@ -22,15 +29,9 @@ pub struct Query;
 
 #[Object]
 impl Query {
-    async fn get_users<'a>(&self, ctx: &Context<'a>) -> Vec<String> {
+    async fn get_users<'a>(&self, ctx: &Context<'a>) -> Vec<User> {
         info!("getting all users");
         ctx.data_unchecked::<Users>().lock().unwrap().clone()
-    }
-
-    async fn do_test(&self) -> String {
-        info!("getting schema");
-
-        build_schema().sdl()
     }
 }
 
@@ -38,24 +39,27 @@ pub struct Mutation;
 
 #[Object]
 impl Mutation {
-    async fn register(&self, ctx: &Context<'_>) -> String {
+    async fn register(&self, ctx: &Context<'_>, name: String) -> User {
         info!("registering");
         let mut users = ctx.data_unchecked::<Users>().lock().unwrap();
-        let new_user = format!("User#{id}", id = users.len());
+        let new_user = User {
+            id: format!("User#{id}", id = users.len()),
+            name,
+        };
         users.push(new_user.clone());
 
         let mut subscribers = ctx.data_unchecked::<Streams>().lock().unwrap();
-        notify_subscribers(&new_user, &mut subscribers);
-        info!("new user registered: {new_user}");
+        notify_subscribers(new_user.clone(), &mut subscribers);
+        info!("new user registered: {new_user:?}");
 
         new_user
     }
 }
 
-fn notify_subscribers(new_user: &str, subscribers: &mut Vec<UnboundedSender<String>>) {
+fn notify_subscribers(new_user: User, subscribers: &mut Vec<UnboundedSender<User>>) {
     for (i, stream) in subscribers.clone().iter().enumerate() {
         debug!("sending new user");
-        match stream.send(new_user.to_string()) {
+        match stream.send(new_user.clone()) {
             Err(_) if stream.is_closed() => {
                 debug!("stream disconnected - removing it");
                 subscribers.remove(i);
@@ -69,10 +73,10 @@ pub struct Subscription;
 
 #[Subscription]
 impl Subscription {
-    async fn get_new_users(&self, ctx: &Context<'_>) -> impl Stream<Item = String> {
+    async fn get_new_users(&self, ctx: &Context<'_>) -> impl Stream<Item = User> {
         info!("new subscription");
 
-        let (sender, mut receiver) = mpsc::unbounded_channel::<String>();
+        let (sender, mut receiver) = mpsc::unbounded_channel::<User>();
 
         let mut streams = ctx.data_unchecked::<Streams>().lock().unwrap();
         streams.push(sender);

@@ -9,7 +9,7 @@ use log::{debug, error, info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
 use warp::http::Response;
 use warp::ws::{Message, WebSocket, Ws};
-use warp::Filter;
+use warp::{Filter, Rejection, Reply};
 
 use lyng2::application::Application;
 use lyng2::chat::{build_schema, Schema};
@@ -18,19 +18,42 @@ use lyng2::chat::{build_schema, Schema};
 async fn main() {
     setup_logger();
 
-    let math_websocket_route = warp::path("math")
-        .and(warp::ws())
-        .map(|handshake: Ws| handshake.on_upgrade(handle_connection));
+    let routes = api_routes()
+        .or(static_files_route())
+        .or(catch_all_index_html_route())
+        .with(warp::log("lyng::api"));
 
+    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
+}
+
+fn api_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     let schema = build_schema();
 
-    let chat_routes = async_graphql_warp::graphql(schema.clone())
+    let routes = lyng2_route()
+        .or(graphql_subscription(schema.clone()).and(warp::path("chat")))
+        .or(chat_route(schema))
+        .or(playground_route())
+        .or(graphiql_route());
+
+    warp::path("api").and(routes)
+}
+
+fn lyng2_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::path("math")
+        .and(warp::ws())
+        .map(|handshake: Ws| handshake.on_upgrade(handle_connection))
+}
+
+fn chat_route(schema: Schema) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    async_graphql_warp::graphql(schema)
         .and(warp::path("chat"))
         .and_then(|(schema, request): (Schema, Request)| async move {
             Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
-        });
+        })
+}
 
-    let graphiql = warp::path("graphiql").and(warp::get()).map(|| {
+fn graphiql_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::path("graphiql").and(warp::get()).map(|| {
         Response::builder()
             .header("content-type", "text/html")
             .body(
@@ -39,32 +62,25 @@ async fn main() {
                     .subscription_endpoint("ws://localhost:8080/api/chat")
                     .finish(),
             )
-    });
+    })
+}
 
-    let playground = warp::path("playground").and(warp::get()).map(|| {
+fn playground_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::path("playground").and(warp::get()).map(|| {
         let config = GraphQLPlaygroundConfig::new("chat/")
             .subscription_endpoint("ws://localhost:8080/api/chat/");
         Response::builder()
             .header("content-type", "text/html")
             .body(playground_source(config))
-    });
+    })
+}
 
-    let static_files = warp::get().and(warp::fs::dir("../react-client/build"));
-    let index_html = warp::get().and(warp::fs::file("../react-client/build/index.html"));
+fn static_files_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::get().and(warp::fs::dir("../react-client/build"))
+}
 
-    let api_routes = warp::path("api").and(
-        math_websocket_route
-            .or(graphql_subscription(schema).and(warp::path("chat")))
-            .or(chat_routes)
-            .or(playground)
-            .or(graphiql),
-    );
-    let routes = api_routes
-        .or(static_files)
-        .or(index_html)
-        .with(warp::log("lyng::api"));
-
-    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
+fn catch_all_index_html_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::get().and(warp::fs::file("../react-client/build/index.html"))
 }
 
 async fn handle_connection(websocket: WebSocket) {
