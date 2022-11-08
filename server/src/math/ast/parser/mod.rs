@@ -14,9 +14,9 @@ use parser_combinator::*;
 
 use error::ErrorMessage;
 
-use crate::ast::Localization;
-use crate::ast::LocalizedSyntaxNode;
-use crate::ast::SyntaxTree;
+use crate::math::ast::Localization;
+use crate::math::ast::LocalizedSyntaxNode;
+use crate::math::ast::SyntaxTree;
 use crate::most_important_of;
 
 mod error;

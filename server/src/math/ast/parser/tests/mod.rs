@@ -2,8 +2,8 @@ use std::ops::{Add, Sub};
 
 use bigdecimal::BigDecimal;
 
-use crate::ast::parser::error::ErrorMessage;
-use crate::ast::{Localization, LocalizedSyntaxNode, SyntaxTree};
+use crate::math::ast::parser::error::ErrorMessage;
+use crate::math::ast::{Localization, LocalizedSyntaxNode, SyntaxTree};
 
 impl From<(usize, usize)> for Localization {
     fn from((line, column): (usize, usize)) -> Self {
@@ -106,9 +106,9 @@ impl LocalizedSyntaxNode {
 mod atoms {
     use bigdecimal::{BigDecimal, FromPrimitive};
 
-    use crate::ast::parser::parse;
-    use crate::ast::parser::tests::number;
-    use crate::ast::Localization;
+    use crate::math::ast::parser::parse;
+    use crate::math::ast::parser::tests::number;
+    use crate::math::ast::Localization;
 
     #[test]
     fn integer() {
@@ -166,9 +166,9 @@ mod atoms {
 }
 
 mod add {
-    use crate::ast::parser::parse;
-    use crate::ast::parser::tests::number;
-    use crate::ast::Localization;
+    use crate::math::ast::parser::parse;
+    use crate::math::ast::parser::tests::number;
+    use crate::math::ast::Localization;
 
     #[test]
     fn add_two_integers() {
@@ -214,8 +214,8 @@ mod add {
 }
 
 mod mul {
-    use crate::ast::parser::parse;
-    use crate::ast::{Localization, LocalizedSyntaxNode};
+    use crate::math::ast::parser::parse;
+    use crate::math::ast::{Localization, LocalizedSyntaxNode};
 
     #[test]
     fn mul_two_integers() {
@@ -273,8 +273,8 @@ mod mul {
 }
 
 mod div {
-    use crate::ast::parser::parse;
-    use crate::ast::{Localization, LocalizedSyntaxNode};
+    use crate::math::ast::parser::parse;
+    use crate::math::ast::{Localization, LocalizedSyntaxNode};
 
     #[test]
     fn div_two_integers() {
@@ -332,8 +332,8 @@ mod div {
 }
 
 mod exp {
-    use crate::ast::parser::parse;
-    use crate::ast::{Localization, LocalizedSyntaxNode};
+    use crate::math::ast::parser::parse;
+    use crate::math::ast::{Localization, LocalizedSyntaxNode};
 
     #[test]
     fn exp_two_integers() {
@@ -379,8 +379,8 @@ mod exp {
 }
 
 mod subtract {
-    use crate::ast::parser::parse;
-    use crate::ast::{Localization, LocalizedSyntaxNode};
+    use crate::math::ast::parser::parse;
+    use crate::math::ast::{Localization, LocalizedSyntaxNode};
 
     #[test]
     fn subtract_two_integers() {
@@ -438,9 +438,9 @@ mod subtract {
 }
 
 mod combined_operations {
-    use crate::ast::parser::parse;
-    use crate::ast::parser::tests::number;
-    use crate::ast::{Localization, LocalizedSyntaxNode};
+    use crate::math::ast::parser::parse;
+    use crate::math::ast::parser::tests::number;
+    use crate::math::ast::{Localization, LocalizedSyntaxNode};
 
     #[test]
     fn add_and_subtract() {

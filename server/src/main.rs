@@ -1,18 +1,19 @@
+use std::any::Any;
 use std::convert::Infallible;
 use std::fs::File;
 
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource};
-use async_graphql::Request;
-use async_graphql_warp::{graphql_subscription, GraphQLResponse};
-use futures_util::{SinkExt, StreamExt, TryFutureExt};
-use log::{debug, error, info, LevelFilter};
+use async_graphql::{Data, Request};
+use async_graphql_warp::{graphql_protocol, GraphQLResponse, GraphQLWebSocket};
+use log::LevelFilter;
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
 use warp::http::Response;
-use warp::ws::{Message, WebSocket, Ws};
+use warp::ws::Ws;
 use warp::{Filter, Rejection, Reply};
 
-use lyng2::application::Application;
+use lyng2::chat::auth::with_auth;
 use lyng2::chat::{build_schema, Schema};
+use lyng2::math::handle_websocket_connection;
 
 #[tokio::main]
 async fn main() {
@@ -30,7 +31,7 @@ fn api_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone 
     let schema = build_schema();
 
     let routes = lyng2_route()
-        .or(graphql_subscription(schema.clone()).and(warp::path("chat")))
+        .or(chat_subscription_route(schema.clone()))
         .or(chat_route(schema))
         .or(playground_route())
         .or(graphiql_route());
@@ -38,18 +39,53 @@ fn api_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone 
     warp::path("api").and(routes)
 }
 
+fn chat_subscription_route(
+    schema: Schema,
+) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+    warp::ws()
+        .and(warp::path("chat"))
+        .and(graphql_protocol())
+        .and(with_auth())
+        .map(move |ws: Ws, protocol, auth_token| {
+            let schema = schema.clone();
+
+            let reply = ws.on_upgrade(move |socket| {
+                GraphQLWebSocket::new(socket, schema, protocol)
+                    .with_data(data_with(auth_token))
+                    .serve()
+            });
+
+            warp::reply::with_header(
+                reply,
+                "Sec-WebSocket-Protocol",
+                protocol.sec_websocket_protocol(),
+            )
+        })
+}
+
+fn data_with<D: Any + Send + Sync>(d: D) -> Data {
+    let mut data = Data::default();
+    data.insert(d);
+    data
+}
+
 fn lyng2_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::path("math")
         .and(warp::ws())
-        .map(|handshake: Ws| handshake.on_upgrade(handle_connection))
+        .map(|handshake: Ws| handshake.on_upgrade(handle_websocket_connection))
 }
 
 fn chat_route(schema: Schema) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     async_graphql_warp::graphql(schema)
         .and(warp::path("chat"))
-        .and_then(|(schema, request): (Schema, Request)| async move {
-            Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
-        })
+        .and(with_auth())
+        .and_then(
+            |(schema, request): (Schema, Request), auth_token| async move {
+                Ok::<_, Infallible>(GraphQLResponse::from(
+                    schema.execute(request.data(auth_token)).await,
+                ))
+            },
+        )
 }
 
 fn graphiql_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
@@ -81,49 +117,6 @@ fn static_files_route() -> impl Filter<Extract = impl Reply, Error = Rejection> 
 
 fn catch_all_index_html_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::get().and(warp::fs::file("../react-client/build/index.html"))
-}
-
-async fn handle_connection(websocket: WebSocket) {
-    info!("New websocket connection");
-
-    let (mut writer, mut reader) = websocket.split();
-
-    tokio::task::spawn(async move {
-        while let Some(incoming) = reader.next().await {
-            let message: Message = match incoming {
-                Ok(msg) => msg,
-                Err(e) => {
-                    error!("websocket error: {}", e);
-                    break;
-                }
-            };
-
-            let response = process(message);
-
-            writer
-                .send(response)
-                .unwrap_or_else(|e| {
-                    error!("websocket send error: {}", e);
-                })
-                .await;
-        }
-    });
-}
-
-fn process(message: Message) -> Message {
-    let response = match message.to_str() {
-        Ok(input) => {
-            debug!("text: {input}");
-            let result = Application::create().run(input.to_string());
-
-            let result = ron::to_string(&result).unwrap();
-            debug!("result: {result}");
-            result
-        }
-        Err(_) => format!("Can't deal with message: {message:?}"),
-    };
-
-    Message::text(response)
 }
 
 fn setup_logger() {

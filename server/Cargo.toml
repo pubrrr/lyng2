@@ -4,11 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-async-graphql = "4.0.14"
+async-graphql = { version = "4.0.14", features = ["log"] }
 async-graphql-warp = "4.0.14"
+async-trait = "0.1.58"
 bigdecimal = "0.3.0"
 chrono = "0.4.22"
 futures-util = "0.3.24"
+jsonwebtoken = "8.1.1"
 log = "0.4.17"
 ron = "0.8.0"
 serde = "1.0.145"
