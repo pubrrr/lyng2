@@ -23,11 +23,28 @@ function ChatApp() {
 }
 
 function Chat() {
+    let { data, loading, error, refetch } = useQuery<Query>(gql`
+        {
+            loggedInUser {
+                name
+            }
+        }
+    `);
+
+    if (error !== undefined) {
+        return <> {error.message}</>;
+    }
+    if (loading || data === undefined) {
+        return <>Loading...</>;
+    }
+
+    if (data.loggedInUser === null || data.loggedInUser === undefined) {
+        return <Register refetch={refetch} />;
+    }
+
     return (
         <>
-            <div>
-                <Register />
-            </div>
+            <>Hello {data.loggedInUser.name}!</>;
             <div>
                 Users:
                 <Users />
@@ -36,7 +53,7 @@ function Chat() {
     );
 }
 
-function Register() {
+function Register(props: { refetch: () => void }) {
     const input = useRef<HTMLInputElement>(null);
     let [register, { data, loading, error }] = useMutation<Mutation>(gql`
         mutation register($name: String!) {
@@ -47,6 +64,7 @@ function Register() {
     `);
 
     if (data) {
+        props.refetch();
         return <>Hello {data.register.name}!</>;
     }
     if (loading) {

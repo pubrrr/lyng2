@@ -9,7 +9,7 @@ use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
 use warp::http::header::SET_COOKIE;
 
-use crate::chat::auth::{create_auth_token, AuthExtensionFactory, AUTH_COOKIE_NAME};
+use crate::chat::auth::{create_auth_token, AuthExtensionFactory, AuthUser, AUTH_COOKIE_NAME};
 
 pub mod auth;
 
@@ -39,6 +39,12 @@ pub struct Query;
 impl Query {
     async fn get_users<'a>(&self, ctx: &Context<'a>) -> Vec<User> {
         ctx.data_unchecked::<Users>().lock().unwrap().clone()
+    }
+
+    async fn logged_in_user<'a>(&self, ctx: &Context<'a>) -> Option<User> {
+        let users = ctx.data_unchecked::<Users>().lock().unwrap();
+        let auth_user = ctx.data_opt::<AuthUser>()?;
+        users.iter().find(|user| user.id == auth_user.id).cloned()
     }
 }
 

@@ -81,9 +81,11 @@ fn chat_route(schema: Schema) -> impl Filter<Extract = impl Reply, Error = Rejec
         .and(with_auth())
         .and_then(
             |(schema, request): (Schema, Request), auth_token| async move {
-                Ok::<_, Infallible>(GraphQLResponse::from(
-                    schema.execute(request.data(auth_token)).await,
-                ))
+                let request = match auth_token {
+                    None => request,
+                    Some(auth_user) => request.data(auth_user),
+                };
+                Ok::<_, Infallible>(GraphQLResponse::from(schema.execute(request).await))
             },
         )
 }
