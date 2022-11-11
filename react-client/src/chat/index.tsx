@@ -1,13 +1,6 @@
-import {
-    ApolloClient,
-    ApolloProvider,
-    gql,
-    InMemoryCache,
-    useMutation,
-    useQuery,
-} from "@apollo/client";
-import { Mutation, Query } from "./gql-types";
-import { useRef } from "react";
+import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
+import { useGetUsersQuery, useLoggedInUserQuery, useRegisterMutation } from "./gql-types";
+import { FormEvent, useRef } from "react";
 
 function ChatApp() {
     const client = new ApolloClient({
@@ -23,13 +16,7 @@ function ChatApp() {
 }
 
 function Chat() {
-    let { data, loading, error, refetch } = useQuery<Query>(gql`
-        {
-            loggedInUser {
-                name
-            }
-        }
-    `);
+    let { data, loading, error, refetch } = useLoggedInUserQuery();
 
     if (error !== undefined) {
         return <> {error.message}</>;
@@ -44,7 +31,7 @@ function Chat() {
 
     return (
         <>
-            <>Hello {data.loggedInUser.name}!</>;
+            <>Hello {data.loggedInUser.name}!</>
             <div>
                 Users:
                 <Users />
@@ -55,13 +42,7 @@ function Chat() {
 
 function Register(props: { refetch: () => void }) {
     const input = useRef<HTMLInputElement>(null);
-    let [register, { data, loading, error }] = useMutation<Mutation>(gql`
-        mutation register($name: String!) {
-            register(name: $name) {
-                name
-            }
-        }
-    `);
+    let [register, { data, loading, error }] = useRegisterMutation();
 
     if (data) {
         props.refetch();
@@ -74,17 +55,22 @@ function Register(props: { refetch: () => void }) {
         return <>Ohoh: {error.message}</>;
     }
 
+    let onSubmit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const name = input.current?.value;
+
+        if (name === undefined) {
+            return;
+        }
+        register({
+            variables: {
+                name,
+            },
+        });
+    };
+
     return (
-        <form
-            onSubmit={(e) => {
-                e.preventDefault();
-                register({
-                    variables: {
-                        name: input.current?.value,
-                    },
-                });
-            }}
-        >
+        <form onSubmit={onSubmit}>
             <input ref={input} type="text" />
             <button type={"submit"}>Ok</button>
         </form>
@@ -92,16 +78,7 @@ function Register(props: { refetch: () => void }) {
 }
 
 function Users() {
-    let queryResult = useQuery<Query>(
-        gql`
-            {
-                getUsers {
-                    name
-                    id
-                }
-            }
-        `
-    );
+    let queryResult = useGetUsersQuery();
 
     if (queryResult.error) {
         return <>Error: {queryResult.error.message}</>;
