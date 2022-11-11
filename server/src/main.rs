@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::convert::Infallible;
 use std::fs::File;
 
@@ -11,7 +10,7 @@ use warp::http::Response;
 use warp::ws::Ws;
 use warp::{Filter, Rejection, Reply};
 
-use lyng2::chat::auth::with_auth;
+use lyng2::chat::auth::{with_auth, AuthUser};
 use lyng2::chat::{build_schema, Schema};
 use lyng2::math::handle_websocket_connection;
 
@@ -63,9 +62,11 @@ fn chat_subscription_route(
         })
 }
 
-fn data_with<D: Any + Send + Sync>(d: D) -> Data {
+fn data_with(auth_token: Option<AuthUser>) -> Data {
     let mut data = Data::default();
-    data.insert(d);
+    if let Some(auth_token) = auth_token {
+        data.insert(auth_token);
+    }
     data
 }
 

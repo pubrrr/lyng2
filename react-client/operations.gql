@@ -16,3 +16,10 @@ mutation register($name: String!) {
         name
     }
 }
+
+subscription getNewUsers {
+    getNewUsers {
+        id,
+        name
+    }
+}

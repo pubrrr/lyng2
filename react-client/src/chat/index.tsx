@@ -1,15 +1,16 @@
-import { ApolloClient, ApolloProvider, InMemoryCache } from "@apollo/client";
-import { useGetUsersQuery, useLoggedInUserQuery, useRegisterMutation } from "./gql-types";
+import { ApolloProvider } from "@apollo/client";
+import {
+    useGetNewUsersSubscription,
+    useGetUsersQuery,
+    useLoggedInUserQuery,
+    useRegisterMutation,
+} from "./gql-types";
 import { FormEvent, useRef } from "react";
+import { getApolloClient } from "./apolloClient";
 
-function ChatApp() {
-    const client = new ApolloClient({
-        uri: "api/chat/",
-        cache: new InMemoryCache(),
-    });
-
+export function ChatApp() {
     return (
-        <ApolloProvider client={client}>
+        <ApolloProvider client={getApolloClient()}>
             <Chat />
         </ApolloProvider>
     );
@@ -19,7 +20,7 @@ function Chat() {
     let { data, loading, error, refetch } = useLoggedInUserQuery();
 
     if (error !== undefined) {
-        return <> {error.message}</>;
+        return <>{error.message}</>;
     }
     if (loading || data === undefined) {
         return <>Loading...</>;
@@ -79,6 +80,7 @@ function Register(props: { refetch: () => void }) {
 
 function Users() {
     let queryResult = useGetUsersQuery();
+    let subscription = useGetNewUsersSubscription();
 
     if (queryResult.error) {
         return <>Error: {queryResult.error.message}</>;
@@ -86,13 +88,19 @@ function Users() {
     if (queryResult.loading) {
         return <>...</>;
     }
+
+    let users = queryResult.data?.getUsers || [];
+    if (subscription.data?.getNewUsers !== undefined) {
+        users.push(subscription.data.getNewUsers);
+    }
     return (
-        <ul>
-            {queryResult.data?.getUsers.map((user) => (
-                <li key={user.id}>{user.name}</li>
-            ))}
-        </ul>
+        <>
+            <ul>
+                {queryResult.data?.getUsers.map((user) => (
+                    <li key={user.id}>{user.name}</li>
+                ))}
+            </ul>
+            {subscription.error && <>Subscription error: {subscription.error}</>}
+        </>
     );
 }
-
-export { ChatApp };
