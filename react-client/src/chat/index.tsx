@@ -7,38 +7,84 @@ import {
 } from "./gql-types";
 import { FormEvent, useRef } from "react";
 import { getApolloClient } from "./apolloClient";
+import Box from "@mui/material/Box";
+import Toolbar from "@mui/material/Toolbar";
+import Typography from "@mui/material/Typography";
+import AppBar from "@mui/material/AppBar";
+import {
+    Drawer,
+    Fab,
+    InputAdornment,
+    List,
+    ListItem,
+    ListItemText,
+    TextField,
+} from "@mui/material";
+import { AccountCircle, Send } from "@mui/icons-material";
+
+const drawerWidth = 240;
 
 export function ChatApp() {
     return (
         <ApolloProvider client={getApolloClient()}>
-            <Chat />
+            <Box sx={{ display: "flex" }}>
+                <Chat />
+            </Box>
         </ApolloProvider>
     );
 }
 
 function Chat() {
+    return (
+        <>
+            <AppBar
+                position="fixed"
+                sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px` }}
+            >
+                <Toolbar>
+                    <Typography variant="h6" noWrap component="div">
+                        Lyng chat
+                    </Typography>
+                </Toolbar>
+            </AppBar>
+            <Drawer
+                sx={{
+                    width: drawerWidth,
+                    flexShrink: 0,
+                    "& .MuiDrawer-paper": {
+                        width: drawerWidth,
+                        boxSizing: "border-box",
+                    },
+                }}
+                variant="permanent"
+                anchor="left"
+            >
+                <Toolbar />
+                <Users />
+            </Drawer>
+            <Box component="main" sx={{ flexGrow: 1, bgcolor: "background.default", p: 3 }}>
+                <Toolbar />
+                <ChatMain />
+            </Box>
+        </>
+    );
+}
+
+function ChatMain() {
     let { data, loading, error, refetch } = useLoggedInUserQuery();
 
     if (error !== undefined) {
-        return <>{error.message}</>;
+        return <Typography paragraph>{error.message}!</Typography>;
     }
     if (loading || data === undefined) {
-        return <>Loading...</>;
+        return <Typography paragraph>Loading ...</Typography>;
     }
 
     if (data.loggedInUser === null || data.loggedInUser === undefined) {
         return <Register refetch={refetch} />;
     }
 
-    return (
-        <>
-            <>Hello {data.loggedInUser.name}!</>
-            <div>
-                Users:
-                <Users />
-            </div>
-        </>
-    );
+    return <Typography paragraph>Hello {data.loggedInUser.name}!</Typography>;
 }
 
 function Register(props: { refetch: () => void }) {
@@ -71,10 +117,23 @@ function Register(props: { refetch: () => void }) {
     };
 
     return (
-        <form onSubmit={onSubmit}>
-            <input ref={input} type="text" />
-            <button type={"submit"}>Ok</button>
-        </form>
+        <Box component="form" onSubmit={onSubmit} sx={{ mt: 1 }}>
+            <TextField
+                label="Enter your name"
+                id="userName"
+                inputRef={input}
+                InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                            <AccountCircle />
+                        </InputAdornment>
+                    ),
+                }}
+            />
+            <Fab color="primary" type={"submit"}>
+                <Send />
+            </Fab>
+        </Box>
     );
 }
 
@@ -82,25 +141,20 @@ function Users() {
     let queryResult = useGetUsersQuery();
     let subscription = useGetNewUsersSubscription();
 
-    if (queryResult.error) {
-        return <>Error: {queryResult.error.message}</>;
-    }
-    if (queryResult.loading) {
-        return <>...</>;
-    }
-
     let users = queryResult.data?.getUsers || [];
     if (subscription.data?.getNewUsers !== undefined) {
         users.push(subscription.data.getNewUsers);
     }
     return (
         <>
-            <ul>
-                {queryResult.data?.getUsers.map((user) => (
-                    <li key={user.id}>{user.name}</li>
+            <Typography variant={"overline"}>Users:</Typography>
+            <List>
+                {users.map((user) => (
+                    <ListItem key={user.id} disablePadding>
+                        <ListItemText primary={user.name} />
+                    </ListItem>
                 ))}
-            </ul>
-            {subscription.error && <>Subscription error: {subscription.error}</>}
+            </List>
         </>
     );
 }
