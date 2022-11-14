@@ -9,20 +9,21 @@ import { CircularProgress, Drawer } from "@mui/material";
 import { Users } from "./Users";
 import { Register } from "./Register";
 import { PropsWithChildren } from "react";
+import { Chat } from "./Chat";
 
 const drawerWidth = 240;
 
 export function ChatApp() {
     return (
         <ApolloProvider client={getApolloClient()}>
-            <Box sx={{ display: "flex" }}>
-                <Chat />
+            <Box sx={{ display: "flex", height: "100vh" }}>
+                <ChatContainer />
             </Box>
         </ApolloProvider>
     );
 }
 
-function Chat() {
+function ChatContainer() {
     let { data } = useLoggedInUserQuery();
 
     let title = "Lyng Chat";
@@ -34,9 +35,18 @@ function Chat() {
         <>
             <Header title={title} />
             <Sidebar>{data?.loggedInUser?.name && <Users />}</Sidebar>
-            <Box component="main" sx={{ flexGrow: 1, bgcolor: "background.default", p: 3 }}>
+            <Box
+                component="main"
+                sx={{
+                    flexGrow: 1,
+                    bgcolor: "background.default",
+                    p: 3,
+                    display: "flex",
+                    flexDirection: "column",
+                }}
+            >
                 <Toolbar />
-                <ChatMain />
+                <ChatMainContainer />
             </Box>
         </>
     );
@@ -77,7 +87,7 @@ function Sidebar(props: PropsWithChildren) {
     );
 }
 
-function ChatMain() {
+function ChatMainContainer() {
     let { data, loading, error, refetch } = useLoggedInUserQuery();
 
     if (error !== undefined) {
@@ -91,5 +101,5 @@ function ChatMain() {
         return <Register onSuccess={refetch} />;
     }
 
-    return <Typography paragraph>Hello {data.loggedInUser.name}!</Typography>;
+    return <Chat />;
 }
