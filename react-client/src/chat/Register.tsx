@@ -20,7 +20,7 @@ export function Register(props: { onSuccess: () => void }) {
         return <Typography>Ohoh: {error.message}</Typography>;
     }
 
-    let onSubmit = (e: FormEvent<HTMLFormElement>) => {
+    const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const name = input.current?.value;
 

@@ -1,6 +1,6 @@
 import { useGetNewUsersSubscription, useGetUsersQuery } from "./gql-types";
 import Typography from "@mui/material/Typography";
-import { List, ListItem, ListItemText } from "@mui/material";
+import { Box, List, ListItem, ListItemText } from "@mui/material";
 
 export function Users() {
     let queryResult = useGetUsersQuery();
@@ -11,7 +11,7 @@ export function Users() {
         users.push(subscription.data.getNewUsers);
     }
     return (
-        <>
+        <Box sx={{ p: 2 }}>
             <Typography variant={"overline"}>Users:</Typography>
             <List>
                 {users.map((user) => (
@@ -20,6 +20,6 @@ export function Users() {
                     </ListItem>
                 ))}
             </List>
-        </>
+        </Box>
     );
 }
