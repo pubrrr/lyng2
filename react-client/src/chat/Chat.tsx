@@ -1,34 +1,48 @@
 import Box from "@mui/material/Box";
 import { Fab, List, ListItem, ListItemText, TextField } from "@mui/material";
 import { Send } from "@mui/icons-material";
-import { FormEvent, useRef } from "react";
+import { FormEvent, useRef, useState } from "react";
+
+type Message = { message: string; time: Date };
 
 export function Chat() {
+    const [messages, setMessages] = useState<Message[]>([]);
+
+    const onSendMessage = (message: string) => {
+        setMessages((messages) => {
+            let newMessages = new Array(...messages);
+            newMessages.push({
+                message,
+                time: new Date(),
+            });
+            return newMessages;
+        });
+    };
+
     return (
         <>
             <Box sx={{ flex: 1 }}>
                 <List>
-                    <ListItem key="1" disablePadding>
-                        <ListItemText primary="hi1" />
-                    </ListItem>
-                    <ListItem key="2" disablePadding>
-                        <ListItemText primary="hi2" />
-                    </ListItem>
+                    {messages.map((message) => (
+                        <ListItem key={message.time.toUTCString()} disablePadding>
+                            <ListItemText primary={message.message} />
+                        </ListItem>
+                    ))}
                 </List>
             </Box>
-            <SendMessage />
+            <SendMessage onSendMessage={onSendMessage} />
         </>
     );
 }
 
-function SendMessage() {
+function SendMessage({ onSendMessage }: { onSendMessage: (message: string) => void }) {
     const input = useRef<HTMLInputElement>(null);
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const message = input.current?.value;
-
-        console.log(message); // TODO
+        if (input.current?.value) {
+            onSendMessage(input.current.value);
+        }
     };
 
     return (
