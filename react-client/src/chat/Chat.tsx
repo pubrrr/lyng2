@@ -9,14 +9,7 @@ export function Chat() {
     const [messages, setMessages] = useState<Message[]>([]);
 
     const onSendMessage = (message: string) => {
-        setMessages((messages) => {
-            let newMessages = new Array(...messages);
-            newMessages.push({
-                message,
-                time: new Date(),
-            });
-            return newMessages;
-        });
+        setMessages((messages) => [...messages, { message, time: new Date() }]);
     };
 
     return (
@@ -36,7 +29,7 @@ export function Chat() {
 }
 
 function SendMessage({ onSendMessage }: { onSendMessage: (message: string) => void }) {
-    const input = useRef<HTMLInputElement>(null);
+    let input = useRef<HTMLInputElement>(null);
 
     const onSubmit = (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -54,6 +47,7 @@ function SendMessage({ onSendMessage }: { onSendMessage: (message: string) => vo
             <TextField
                 placeholder="Enter your message"
                 id="messageInput"
+                name="messageInput"
                 inputRef={input}
                 sx={{ flex: 1 }}
             />
