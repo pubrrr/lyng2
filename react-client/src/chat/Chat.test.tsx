@@ -3,6 +3,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { Chat } from "./Chat";
 
 test("show sent message", () => {
+    window.HTMLElement.prototype.scrollIntoView = () => {};
     render(<Chat />);
 
     const inputField = screen.getByRole("textbox");
