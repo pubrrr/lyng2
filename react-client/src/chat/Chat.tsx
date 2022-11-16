@@ -1,12 +1,17 @@
 import Box from "@mui/material/Box";
 import { Card, CardContent, Fab, List, ListItem, TextField, Typography } from "@mui/material";
 import { Send } from "@mui/icons-material";
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 
 type Message = { message: string; time: Date };
 
 export function Chat() {
     const [messages, setMessages] = useState<Message[]>([]);
+    const bottomRef = useRef<HTMLLIElement>(null);
+
+    useEffect(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
 
     const onSendMessage = (message: string) => {
         setMessages((messages) => [...messages, { message, time: new Date() }]);
@@ -14,13 +19,12 @@ export function Chat() {
 
     return (
         <>
-            <Box sx={{ flex: 1 }}>
-                <List>
-                    {messages.map((message) => (
-                        <MessageListItem message={message} />
-                    ))}
-                </List>
-            </Box>
+            <List sx={{ flex: 1, maxHeight: "100%", overflow: "auto" }}>
+                {messages.map((message) => (
+                    <MessageListItem message={message} />
+                ))}
+                <ListItem ref={bottomRef} sx={{ p: 0 }}></ListItem>
+            </List>
             <SendMessage onSendMessage={onSendMessage} />
         </>
     );
@@ -30,7 +34,7 @@ function MessageListItem({ message }: { message: Message }) {
     return (
         <ListItem
             key={message.time.toUTCString()}
-            sx={{ m: 1, display: "flex", justifyContent: "end" }}
+            sx={{ pr: 2, pl: 2, display: "flex", justifyContent: "end", width: null }}
         >
             <Card>
                 <CardContent>
