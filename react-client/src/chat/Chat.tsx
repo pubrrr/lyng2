@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import { Fab, List, ListItem, ListItemText, TextField } from "@mui/material";
+import { Card, CardContent, Fab, List, ListItem, TextField, Typography } from "@mui/material";
 import { Send } from "@mui/icons-material";
 import { FormEvent, useRef, useState } from "react";
 
@@ -17,15 +17,35 @@ export function Chat() {
             <Box sx={{ flex: 1 }}>
                 <List>
                     {messages.map((message) => (
-                        <ListItem key={message.time.toUTCString()} disablePadding>
-                            <ListItemText primary={message.message} />
-                        </ListItem>
+                        <MessageListItem message={message} />
                     ))}
                 </List>
             </Box>
             <SendMessage onSendMessage={onSendMessage} />
         </>
     );
+}
+
+function MessageListItem({ message }: { message: Message }) {
+    return (
+        <ListItem
+            key={message.time.toUTCString()}
+            sx={{ m: 1, display: "flex", justifyContent: "end" }}
+        >
+            <Card>
+                <CardContent>
+                    <Typography>{message.message}</Typography>
+                    <Typography>{format(message.time)}</Typography>
+                </CardContent>
+            </Card>
+        </ListItem>
+    );
+}
+
+function format(time: Date) {
+    let hours = time.getHours();
+    let minutes = time.getMinutes();
+    return (hours < 10 ? "0" : "" + hours) + ":" + (minutes < 10 ? "0" : "" + minutes);
 }
 
 function SendMessage({ onSendMessage }: { onSendMessage: (message: string) => void }) {
