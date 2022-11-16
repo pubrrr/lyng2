@@ -35,7 +35,9 @@ function MessageListItem({ message }: { message: Message }) {
             <Card>
                 <CardContent>
                     <Typography>{message.message}</Typography>
-                    <Typography>{format(message.time)}</Typography>
+                    <Typography align="right" variant="subtitle2" sx={{ mb: -2.5, mr: -1 }}>
+                        {format(message.time)}
+                    </Typography>
                 </CardContent>
             </Card>
         </ListItem>
