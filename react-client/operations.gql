@@ -1,0 +1,25 @@
+query getUsers {
+    getUsers {
+        name
+        id
+    }
+}
+
+query loggedInUser {
+    loggedInUser {
+        name
+    }
+}
+
+mutation register($name: String!) {
+    register(name: $name) {
+        name
+    }
+}
+
+subscription getNewUsers {
+    getNewUsers {
+        id,
+        name
+    }
+}

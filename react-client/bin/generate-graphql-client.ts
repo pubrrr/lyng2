@@ -1,7 +1,11 @@
 import { codegen } from "@graphql-codegen/core";
 import { parse } from "graphql";
-import * as typescriptPlugin from "@graphql-codegen/typescript";
+import * as typescript from "@graphql-codegen/typescript";
+import * as typescriptOperations from "@graphql-codegen/typescript-operations";
+import * as typescriptReactApollo from "@graphql-codegen/typescript-react-apollo";
 import * as fs from "fs";
+import { loadDocuments } from "@graphql-tools/load";
+import { GraphQLFileLoader } from "@graphql-tools/graphql-file-loader";
 
 function getInput() {
     return new Promise<string>(function (resolve, reject) {
@@ -22,18 +26,30 @@ function getInput() {
 }
 
 async function generateGqlTypes(schema: string) {
+    const loadedDocuments = await loadDocuments(["operations.gql"], {
+        loaders: [new GraphQLFileLoader()],
+    });
+
     return codegen({
-        filename: "unusedByTsPlugin",
+        filename: "unusedByTsPlugin.ts",
         plugins: [
             {
                 typescript: {},
             },
+            {
+                typescriptOperations: {},
+            },
+            {
+                typescriptReactApollo: {},
+            },
         ],
         schema: parse(schema),
         config: [],
-        documents: [],
+        documents: loadedDocuments,
         pluginMap: {
-            typescript: typescriptPlugin,
+            typescript,
+            typescriptOperations,
+            typescriptReactApollo,
         },
     });
 }

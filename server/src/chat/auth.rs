@@ -15,9 +15,9 @@ use crate::chat::User;
 const JWT_SECRET: &[u8] = b"secret!";
 pub const AUTH_COOKIE_NAME: &str = "chat_user";
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct AuthUser {
-    id: String,
+    pub id: String,
 }
 
 pub fn create_auth_token(user: &User) -> String {
@@ -66,7 +66,7 @@ impl Extension for AuthExtension {
     ) -> ServerResult<ExecutableDocument> {
         let document = next.run(ctx, query, variables).await?;
 
-        let auth_header = ctx.data_unchecked::<Option<AuthUser>>();
+        let auth_header = ctx.data_opt::<AuthUser>();
 
         if auth_header.is_some() {
             info!("found auth header {auth_header:?}");
@@ -102,7 +102,7 @@ fn find_top_level_field_names(document: &ExecutableDocument) -> Vec<&str> {
 }
 
 fn operations_need_authentication(field_names: Vec<&str>) -> bool {
-    const WHITELISTED_OPERATIONS: [&str; 2] = ["__schema", "register"];
+    const WHITELISTED_OPERATIONS: [&str; 3] = ["__schema", "register", "loggedInUser"];
 
     field_names
         .into_iter()

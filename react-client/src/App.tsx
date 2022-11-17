@@ -17,7 +17,6 @@ function App() {
 }
 
 function Menu() {
-    console.log("Menu");
     return (
         <>
             <Link to={"lyng"}>Lyng</Link>
