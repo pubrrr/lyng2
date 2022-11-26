@@ -101,12 +101,13 @@ fn chat_route(schema: Schema) -> impl Filter<Extract = impl Reply, Error = Rejec
 
 fn graphiql_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::path("graphiql").and(warp::get()).map(|| {
+        let subscription_endpoint = subscription_endpoint();
         Response::builder()
             .header("content-type", "text/html")
             .body(
                 GraphiQLSource::build()
                     .endpoint("chat/")
-                    .subscription_endpoint("ws://localhost:8080/api/chat")
+                    .subscription_endpoint(&subscription_endpoint)
                     .finish(),
             )
     })
@@ -114,12 +115,17 @@ fn graphiql_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Cl
 
 fn playground_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     warp::path("playground").and(warp::get()).map(|| {
-        let config = GraphQLPlaygroundConfig::new("chat/")
-            .subscription_endpoint("ws://localhost:8080/api/chat/");
+        let subscription_endpoint = subscription_endpoint();
+        let config =
+            GraphQLPlaygroundConfig::new("chat/").subscription_endpoint(&subscription_endpoint);
         Response::builder()
             .header("content-type", "text/html")
             .body(playground_source(config))
     })
+}
+
+fn subscription_endpoint() -> String {
+    format!("ws://{host}/api/chat", host = address())
 }
 
 fn static_files_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
@@ -146,4 +152,14 @@ fn setup_logger() {
         SimpleLogger::new(LevelFilter::Debug, config),
     ])
     .unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::address;
+
+    #[test]
+    fn test_address() {
+        assert_eq!("127.0.0.1:8080", format!("{}", address()));
+    }
 }
