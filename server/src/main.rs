@@ -1,5 +1,7 @@
 use std::convert::Infallible;
 use std::fs::File;
+use std::net::SocketAddr;
+use std::str::FromStr;
 
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource};
 use async_graphql::{Data, Request};
@@ -23,7 +25,13 @@ async fn main() {
         .or(catch_all_index_html_route())
         .with(warp::log("lyng::api"));
 
-    warp::serve(routes).run(([127, 0, 0, 1], 8080)).await;
+    warp::serve(routes).run(address()).await;
+}
+
+fn address() -> SocketAddr {
+    std::env::var("ADDRESS")
+        .map(|address| SocketAddr::from_str(&address).unwrap())
+        .unwrap_or_else(|_| ([127, 0, 0, 1], 8080).into())
 }
 
 fn api_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {

@@ -1,0 +1,12 @@
+version: "3.7"
+services:
+  lyng2:
+    image: rust:latest
+    command: cargo run --bin lyng2
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/lyng2
+    working_dir: /lyng2/server
+    environment:
+      ADDRESS: 0.0.0.0:8080
