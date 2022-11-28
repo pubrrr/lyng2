@@ -23,3 +23,20 @@ subscription getNewUsers {
         name
     }
 }
+
+subscription subscribeToChatMessages {
+    getNewMessages{
+        message,
+        date,
+        user {
+            name
+        }
+    }
+}
+
+mutation sendMessage($message: String!) {
+    sendMessage(message: $message) {
+        message,
+        date
+    }
+}

@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::sync::Mutex;
 
 use async_graphql::async_stream::stream;
@@ -113,9 +114,9 @@ fn get_user(ctx: &Context) -> User {
         .clone()
 }
 
-fn notify_subscribers<T: Clone>(message: T, subscribers: &mut Vec<UnboundedSender<T>>) {
+fn notify_subscribers<T: Clone + Debug>(message: T, subscribers: &mut Vec<UnboundedSender<T>>) {
     for (i, stream) in subscribers.clone().iter().enumerate() {
-        debug!("sending new user");
+        debug!("notifying: {message:?}");
         match stream.send(message.clone()) {
             Err(_) if stream.is_closed() => {
                 debug!("stream disconnected - removing it");

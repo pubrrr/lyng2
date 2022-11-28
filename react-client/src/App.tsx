@@ -27,7 +27,6 @@ function Menu() {
 
 function LyngApp() {
     const { readyState } = useWebSocket(websocketUrl, { share: true });
-    console.log(readyState);
     switch (readyState) {
         case ReadyState.CONNECTING:
         case ReadyState.UNINSTANTIATED:
