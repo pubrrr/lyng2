@@ -2,38 +2,49 @@ import Box from "@mui/material/Box";
 import { Card, CardContent, Fab, List, ListItem, TextField, Typography } from "@mui/material";
 import { Send } from "@mui/icons-material";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { useSendMessageMutation, useSubscribeToChatMessagesSubscription } from "./gql-types";
+import {
+    Message as ServerMessage,
+    useSendMessageMutation,
+    useSubscribeToChatMessagesSubscription,
+} from "./gql-types";
 
 type Message = { message: string; date: Date };
 
-export function Chat() {
+function useMessages() {
     const [messages, setMessages] = useState<Message[]>([]);
-    const bottomRef = useRef<HTMLLIElement>(null);
     let subscription = useSubscribeToChatMessagesSubscription();
-    let [sendMessage] = useSendMessageMutation();
+    let [sendMessageMutation] = useSendMessageMutation();
 
     let newMessage = subscription?.data?.getNewMessages;
     if (newMessage !== undefined) {
-        setMessages((messages) => [
-            ...messages,
-            {
-                message: (newMessage as Message).message,
-                date: new Date((newMessage as Message).date),
-            },
-        ]);
+        setMessages((messages) => [...messages, toMessage(newMessage as ServerMessage)]);
         subscription.data = undefined;
     } else if (subscription?.error !== undefined) {
         console.log(subscription?.error);
     }
 
+    const sendMessage = (message: string) => {
+        setMessages((messages) => [...messages, { message, date: new Date() }]);
+        sendMessageMutation({ variables: { message } }).catch(console.log);
+    };
+
+    return { messages, sendMessage };
+}
+
+function toMessage(newMessage: ServerMessage) {
+    return {
+        message: (newMessage as Message).message,
+        date: new Date((newMessage as Message).date),
+    };
+}
+
+export function Chat() {
+    const bottomRef = useRef<HTMLLIElement>(null);
+    const { messages, sendMessage } = useMessages();
+
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
-
-    const onSendMessage = (message: string) => {
-        setMessages((messages) => [...messages, { message, date: new Date() }]);
-        sendMessage({ variables: { message } }).catch(console.log);
-    };
 
     return (
         <>
@@ -43,7 +54,7 @@ export function Chat() {
                 ))}
                 <ListItem key="bottom" ref={bottomRef} sx={{ p: 0 }}></ListItem>
             </List>
-            <SendMessage onSendMessage={onSendMessage} />
+            <SendMessage onSendMessage={sendMessage} />
         </>
     );
 }
