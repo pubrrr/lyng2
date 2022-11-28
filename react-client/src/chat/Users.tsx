@@ -9,7 +9,10 @@ export function Users() {
     let users = queryResult.data?.getUsers || [];
     if (subscription.data?.getNewUsers !== undefined) {
         users.push(subscription.data.getNewUsers);
+    } else {
+        console.log(subscription.error);
     }
+
     return (
         <Box sx={{ p: 2 }}>
             <Typography variant={"overline"}>Users:</Typography>
