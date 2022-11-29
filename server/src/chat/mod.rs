@@ -79,7 +79,7 @@ impl Mutation {
         let auth_cookie = create_auth_token(&new_user);
         ctx.insert_http_header(
             SET_COOKIE,
-            format!("{AUTH_COOKIE_NAME}={auth_cookie}; SameSite=Strict; Secure"),
+            format!("{AUTH_COOKIE_NAME}={auth_cookie}; SameSite=lax"),
         );
 
         new_user
