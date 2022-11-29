@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { Chat } from "./Chat";
 import { useSendMessageMutation, useSubscribeToChatMessagesSubscription } from "./gql-types";
 
@@ -49,38 +49,38 @@ test("show sent message", () => {
 });
 
 test("show incoming message", () => {
-    mockUseSubscribeToChatMessagesSubscription.mockReturnValue({
-        data: {
-            getNewMessages: subscriptionsMessage1,
-        },
-    });
-
     render(<Chat />);
+
+    act(() => {
+        mockUseSubscribeToChatMessagesSubscription.mock.calls[0][0].onData({
+            data: { data: { getNewMessages: subscriptionsMessage1 } },
+        });
+    });
 
     const message = screen.getByText(incomingMessage1);
     expect(message).toBeInTheDocument();
 });
 
 test("show multiple incoming messages", () => {
-    mockUseSubscribeToChatMessagesSubscription.mockReturnValueOnce({
-        data: {
-            getNewMessages: subscriptionsMessage1,
-        },
-    });
-
     render(<Chat />);
+
+    act(() => {
+        mockUseSubscribeToChatMessagesSubscription.mock.calls[0][0].onData({
+            data: { data: { getNewMessages: subscriptionsMessage1 } },
+        });
+    });
 
     expect(screen.getByText(incomingMessage1)).toBeInTheDocument();
     expect(screen.queryByText(incomingMessage2)).not.toBeInTheDocument();
 
-    mockUseSubscribeToChatMessagesSubscription.mockReturnValueOnce({
-        data: {
-            getNewMessages: subscriptionsMessage2,
-        },
+    act(() => {
+        mockUseSubscribeToChatMessagesSubscription.mock.calls[0][0].onData({
+            data: { data: { getNewMessages: subscriptionsMessage2 } },
+        });
     });
 
     render(<Chat />);
 
     expect(screen.getByText(incomingMessage1)).toBeInTheDocument();
-    expect(screen.getByText("incomingMessage2")).toBeInTheDocument();
+    expect(screen.getByText(incomingMessage2)).toBeInTheDocument();
 });
