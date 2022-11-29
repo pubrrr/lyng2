@@ -6,7 +6,7 @@ use std::str::FromStr;
 use async_graphql::http::{playground_source, GraphQLPlaygroundConfig, GraphiQLSource};
 use async_graphql::{Data, Request};
 use async_graphql_warp::{graphql_protocol, GraphQLResponse, GraphQLWebSocket};
-use log::LevelFilter;
+use log::{info, LevelFilter};
 use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, WriteLogger};
 use warp::http::Response;
 use warp::ws::Ws;
@@ -25,7 +25,19 @@ async fn main() {
         .or(catch_all_index_html_route())
         .with(warp::log("lyng::api"));
 
-    warp::serve(routes).run(address()).await;
+    let server = warp::serve(routes);
+
+    if let Ok(cert_path) = std::env::var("CERT_PATH") {
+        info!("using certificates from {}", cert_path);
+        server
+            .tls()
+            .cert_path(format!("{}/cert.pem", cert_path))
+            .key_path(format!("{}/key.rsa", cert_path))
+            .run(address())
+            .await;
+    } else {
+        server.run(address()).await;
+    }
 }
 
 fn address() -> SocketAddr {
