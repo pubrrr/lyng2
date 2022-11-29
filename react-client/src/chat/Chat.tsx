@@ -1,27 +1,23 @@
 import Box from "@mui/material/Box";
 import { Card, CardContent, Fab, List, ListItem, TextField, Typography } from "@mui/material";
 import { Send } from "@mui/icons-material";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { Dispatch, FormEvent, SetStateAction, useEffect, useRef, useState } from "react";
 import {
     Message as ServerMessage,
+    SubscribeToChatMessagesSubscription,
     useSendMessageMutation,
     useSubscribeToChatMessagesSubscription,
 } from "./gql-types";
+import { OnDataOptions } from "@apollo/client";
 
 type Message = { message: string; date: Date };
 
 function useMessages() {
     const [messages, setMessages] = useState<Message[]>([]);
-    let subscription = useSubscribeToChatMessagesSubscription();
-    let [sendMessageMutation] = useSendMessageMutation();
-
-    let newMessage = subscription?.data?.getNewMessages;
-    if (newMessage !== undefined) {
-        setMessages((messages) => [...messages, toMessage(newMessage as ServerMessage)]);
-        subscription.data = undefined;
-    } else if (subscription?.error !== undefined) {
-        console.log(subscription?.error);
-    }
+    const [sendMessageMutation] = useSendMessageMutation();
+    useSubscribeToChatMessagesSubscription({
+        onData: storeSubscriptionMessage(setMessages),
+    });
 
     const sendMessage = (message: string) => {
         setMessages((messages) => [...messages, { message, date: new Date() }]);
@@ -31,7 +27,18 @@ function useMessages() {
     return { messages, sendMessage };
 }
 
-function toMessage(newMessage: ServerMessage) {
+function storeSubscriptionMessage(setMessages: Dispatch<SetStateAction<Message[]>>) {
+    return (options: OnDataOptions<SubscribeToChatMessagesSubscription>) => {
+        let newMessage = options.data?.data?.getNewMessages;
+        if (newMessage !== undefined) {
+            setMessages((messages) => [...messages, mapMessage(newMessage as ServerMessage)]);
+        } else if (options.data?.error !== undefined) {
+            console.log(options.data.error);
+        }
+    };
+}
+
+function mapMessage(newMessage: ServerMessage) {
     return {
         message: (newMessage as Message).message,
         date: new Date((newMessage as Message).date),
