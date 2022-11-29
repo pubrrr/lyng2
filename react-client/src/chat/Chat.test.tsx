@@ -70,11 +70,8 @@ test("show multiple incoming messages", () => {
 
     render(<Chat />);
 
-    let message1 = screen.getByText(incomingMessage1);
-    expect(message1).toBeInTheDocument();
-
-    let message2 = screen.queryByText(incomingMessage2);
-    expect(message2).not.toBeInTheDocument();
+    expect(screen.getByText(incomingMessage1)).toBeInTheDocument();
+    expect(screen.queryByText(incomingMessage2)).not.toBeInTheDocument();
 
     mockUseSubscribeToChatMessagesSubscription.mockReturnValueOnce({
         data: {
@@ -84,9 +81,6 @@ test("show multiple incoming messages", () => {
 
     render(<Chat />);
 
-    message1 = screen.getByText(incomingMessage1);
-    expect(message1).toBeInTheDocument();
-
-    message2 = screen.queryByText(incomingMessage2);
-    expect(message2).toBeInTheDocument();
+    expect(screen.getByText(incomingMessage1)).toBeInTheDocument();
+    expect(screen.getByText("incomingMessage2")).toBeInTheDocument();
 });
