@@ -7,7 +7,7 @@ type EditorState = {
     viewContent: string;
 };
 
-export const websocketUrl = "ws://127.0.0.1:8080/api/math";
+export const websocketUrl = "ws://" + window.location.host + "/api/math";
 
 const Editor = () => {
     const [state, setState] = useState<EditorState>({ editorContent: "", viewContent: "" });
