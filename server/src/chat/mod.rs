@@ -87,12 +87,10 @@ impl Mutation {
 
     async fn send_message(&self, ctx: &Context<'_>, message: String) -> Message {
         info!("new message received: {message}");
-        println!("new message received: {message}");
         let mut subscribers = ctx.data_unchecked::<Streams<Message>>().lock().unwrap();
 
         let user = get_user(ctx);
         info!("from user: {user:?}");
-        println!("from user: {user:?}");
 
         let message = Message {
             user,
@@ -148,7 +146,6 @@ impl Subscription {
 
     async fn get_new_messages(&self, ctx: &Context<'_>) -> impl Stream<Item = Message> {
         info!("new subscription for messages");
-        println!("new subscription for messages");
 
         let (sender, mut receiver) = mpsc::unbounded_channel::<Message>();
 
