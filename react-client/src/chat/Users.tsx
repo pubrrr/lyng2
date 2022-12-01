@@ -1,15 +1,33 @@
-import { useGetNewUsersSubscription, useGetUsersQuery } from "./gql-types";
+import { useGetNewUsersSubscription, useGetUsersQuery, User } from "./gql-types";
 import Typography from "@mui/material/Typography";
 import { Box, List, ListItem, ListItemText } from "@mui/material";
+import { useState } from "react";
+
+function useUsers() {
+    const [users, setUsers] = useState<User[]>([]);
+
+    useGetUsersQuery({
+        onCompleted: (data) => setUsers((users) => [...users, ...data.getUsers]),
+        onError: (error) => console.log(error),
+    });
+
+    useGetNewUsersSubscription({
+        onData: (options) => {
+            const newUser = options.data.data?.getNewUsers;
+            if (newUser !== undefined) {
+                setUsers((users) => [...users, newUser]);
+            } else if (options.data.error !== undefined) {
+                console.log(options.data.error);
+            }
+        },
+    });
+
+    return users;
+}
 
 export function Users() {
-    let queryResult = useGetUsersQuery();
-    let subscription = useGetNewUsersSubscription();
+    const users = useUsers();
 
-    let users = queryResult.data?.getUsers || [];
-    if (subscription.data?.getNewUsers !== undefined) {
-        users.push(subscription.data.getNewUsers);
-    }
     return (
         <Box sx={{ p: 2 }}>
             <Typography variant={"overline"}>Users:</Typography>

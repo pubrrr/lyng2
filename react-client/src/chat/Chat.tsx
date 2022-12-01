@@ -1,31 +1,67 @@
 import Box from "@mui/material/Box";
 import { Card, CardContent, Fab, List, ListItem, TextField, Typography } from "@mui/material";
 import { Send } from "@mui/icons-material";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { Dispatch, FormEvent, SetStateAction, useEffect, useRef, useState } from "react";
+import {
+    Message as ServerMessage,
+    SubscribeToChatMessagesSubscription,
+    useSendMessageMutation,
+    useSubscribeToChatMessagesSubscription,
+} from "./gql-types";
+import { OnDataOptions } from "@apollo/client";
 
-type Message = { message: string; time: Date };
+type Message = { message: string; date: Date };
+
+function useMessages() {
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [sendMessageMutation] = useSendMessageMutation();
+    useSubscribeToChatMessagesSubscription({
+        onData: storeSubscriptionMessage(setMessages),
+    });
+
+    const sendMessage = (message: string) => {
+        setMessages((messages) => [...messages, { message, date: new Date() }]);
+        sendMessageMutation({ variables: { message } }).catch(console.log);
+    };
+
+    return { messages, sendMessage };
+}
+
+function storeSubscriptionMessage(setMessages: Dispatch<SetStateAction<Message[]>>) {
+    return (options: OnDataOptions<SubscribeToChatMessagesSubscription>) => {
+        let newMessage = options.data?.data?.getNewMessages;
+        if (newMessage !== undefined) {
+            setMessages((messages) => [...messages, mapMessage(newMessage as ServerMessage)]);
+        } else if (options.data?.error !== undefined) {
+            console.log(options.data.error);
+        }
+    };
+}
+
+function mapMessage(newMessage: ServerMessage) {
+    return {
+        message: (newMessage as Message).message,
+        date: new Date((newMessage as Message).date),
+    };
+}
 
 export function Chat() {
-    const [messages, setMessages] = useState<Message[]>([]);
     const bottomRef = useRef<HTMLLIElement>(null);
+    const { messages, sendMessage } = useMessages();
 
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages]);
 
-    const onSendMessage = (message: string) => {
-        setMessages((messages) => [...messages, { message, time: new Date() }]);
-    };
-
     return (
         <>
             <List sx={{ flex: 1, maxHeight: "100%", overflow: "auto" }}>
-                {messages.map((message) => (
-                    <MessageListItem message={message} key={message.time.toUTCString()} />
+                {messages.map((message, i) => (
+                    <MessageListItem message={message} key={i} />
                 ))}
                 <ListItem key="bottom" ref={bottomRef} sx={{ p: 0 }}></ListItem>
             </List>
-            <SendMessage onSendMessage={onSendMessage} />
+            <SendMessage onSendMessage={sendMessage} />
         </>
     );
 }
@@ -33,14 +69,14 @@ export function Chat() {
 function MessageListItem({ message }: { message: Message }) {
     return (
         <ListItem
-            key={message.time.toUTCString()}
+            key={message.date.toUTCString()}
             sx={{ pr: 2, pl: 2, display: "flex", justifyContent: "end", width: null }}
         >
             <Card>
                 <CardContent>
                     <Typography>{message.message}</Typography>
                     <Typography align="right" variant="subtitle2" sx={{ mb: -2.5, mr: -1 }}>
-                        {format(message.time)}
+                        {format(message.date)}
                     </Typography>
                 </CardContent>
             </Card>
