@@ -28,11 +28,11 @@ async fn main() {
     let server = warp::serve(routes);
 
     if let Ok(cert_path) = std::env::var("CERT_PATH") {
-        info!("using certificates from {}", cert_path);
+        info!("starting TLS server - using certificates from {cert_path}");
         server
             .tls()
-            .cert_path(format!("{}/cert.pem", cert_path))
-            .key_path(format!("{}/key.rsa", cert_path))
+            .cert_path(format!("{cert_path}/cert.pem"))
+            .key_path(format!("{cert_path}/key.rsa"))
             .run(address())
             .await;
     } else {
@@ -159,7 +159,7 @@ fn setup_logger() {
         WriteLogger::new(
             LevelFilter::Debug,
             config.clone(),
-            File::create(format!("logs/log-{}.txt", current_date_time)).unwrap(),
+            File::create(format!("logs/log-{current_date_time}.txt")).unwrap(),
         ),
         SimpleLogger::new(LevelFilter::Debug, config),
     ])
