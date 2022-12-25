@@ -5,6 +5,7 @@ import LostConnection from "./LostConnection";
 import useWebSocket, { ReadyState } from "react-use-websocket";
 import { Link, Route, Routes } from "react-router-dom";
 import { ChatApp } from "./chat";
+import { Box, Card, CardActionArea, CardContent, Typography } from "@mui/material";
 
 function App() {
     return (
@@ -18,10 +19,43 @@ function App() {
 
 function Menu() {
     return (
-        <>
-            <Link to={"lyng"}>Lyng</Link>
-            <Link to={"chat"}>Chat</Link>
-        </>
+        <Box
+            sx={{
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+                height: "100vh",
+            }}
+        >
+            <LinkCard to={"lyng"} text="Lyng" />
+            <LinkCard to={"chat"} text="Chat" />
+        </Box>
+    );
+}
+
+function LinkCard(props: { to: string; text: string }) {
+    return (
+        <Card
+            sx={{
+                m: 1,
+            }}
+        >
+            <CardActionArea component={Link} to={props.to}>
+                <CardContent
+                    sx={{
+                        height: "100%",
+                        margin: "auto",
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        minWidth: "10em",
+                        minHeight: "5em",
+                    }}
+                >
+                    <Typography variant="h5">{props.text}</Typography>
+                </CardContent>
+            </CardActionArea>
+        </Card>
     );
 }
 

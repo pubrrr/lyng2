@@ -5,11 +5,12 @@ import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import AppBar from "@mui/material/AppBar";
-import { CircularProgress, Drawer } from "@mui/material";
+import { Button, CircularProgress, Drawer } from "@mui/material";
 import { Users } from "./Users";
 import { Register } from "./Register";
 import { PropsWithChildren } from "react";
 import { Chat } from "./Chat";
+import { ArrowBackIosNew } from "@mui/icons-material";
 
 const drawerWidth = 240;
 
@@ -34,7 +35,9 @@ function ChatContainer() {
     return (
         <>
             <Header title={title} />
-            <Sidebar>{data?.loggedInUser?.name && <Users />}</Sidebar>
+            <Box sx={{ zIndex: 0 }}>
+                <Sidebar>{data?.loggedInUser?.name && <Users />}</Sidebar>
+            </Box>
             <Box
                 component="main"
                 sx={{
@@ -54,14 +57,16 @@ function ChatContainer() {
 
 function Header(props: { title: string }) {
     return (
-        <AppBar
-            position="fixed"
-            sx={{ width: `calc(100% - ${drawerWidth}px)`, ml: `${drawerWidth}px` }}
-        >
+        <AppBar position="fixed">
             <Toolbar>
-                <Typography variant="h6" noWrap component="div">
-                    {props.title}
-                </Typography>
+                <Button href="/">
+                    <ArrowBackIosNew sx={{ color: "white" }} />
+                </Button>
+                <Box sx={{ position: "fixed", ml: `${drawerWidth}px` }}>
+                    <Typography variant="h6" noWrap component="div">
+                        {props.title}
+                    </Typography>
+                </Box>
             </Toolbar>
         </AppBar>
     );
