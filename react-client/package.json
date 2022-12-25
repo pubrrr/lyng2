@@ -13,6 +13,8 @@
         "@types/node": "^16.11.35",
         "@types/react": "^18.0.9",
         "@types/react-dom": "^18.0.4",
+        "@uiw/react-codemirror": "^4.19.4",
+        "codemirror": "^6.0.1",
         "graphql": "^16.6.0",
         "graphql-ws": "^5.11.2",
         "react": "^18.1.0",
