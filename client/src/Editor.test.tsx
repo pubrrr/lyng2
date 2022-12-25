@@ -1,6 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import Editor from "./Editor";
-import { act } from "react-dom/test-utils";
 import useWebSocket from "react-use-websocket";
 import { decodeMessage } from "./serverCommunication";
 
@@ -18,27 +17,11 @@ describe("the Editor", () => {
         mockUseWebSocket.mockReturnValue({ sendMessage: sendMessageMock });
     });
 
-    test("should send the input data to the server", () => {
+    test("should display the initial text", () => {
         render(<Editor />);
 
-        const inputField = screen.getByTestId("input");
-        fireEvent.input(inputField, { target: { innerText: "my input" } });
-        fireEvent.click(screen.getByText("Send"));
+        const inputField = screen.getAllByRole("textbox")[0];
 
-        expect(sendMessageMock).toBeCalledWith("my input");
-    });
-
-    test("should put data received from the server to the view", () => {
-        decodeMessageMock.mockReturnValue("decoded message");
-
-        render(<Editor />);
-
-        act(() => {
-            mockUseWebSocket.mock.calls[0][1].onMessage({ data: "from the server" });
-        });
-
-        const view = screen.getByTestId("view");
-        expect(view).toHaveTextContent("decoded message");
-        expect(decodeMessageMock).toHaveBeenCalledWith("from the server");
+        expect(inputField).toHaveTextContent("1+2+3+4");
     });
 });
