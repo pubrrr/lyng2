@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::sync::Mutex;
 
@@ -18,11 +19,11 @@ pub mod auth;
 mod test;
 
 type Users = Mutex<Vec<User>>;
-type Streams<T> = Mutex<Vec<UnboundedSender<T>>>;
+type Streams<T> = Mutex<HashMap<User, UnboundedSender<T>>>;
 
 pub type Schema = async_graphql::Schema<Query, Mutation, Subscription>;
 
-#[derive(Clone, Debug, SimpleObject)]
+#[derive(Clone, Debug, SimpleObject, Hash, Eq, PartialEq)]
 pub struct User {
     id: String,
     name: String,
@@ -73,7 +74,7 @@ impl Mutation {
         users.push(new_user.clone());
 
         let mut subscribers = ctx.data_unchecked::<Streams<User>>().lock().unwrap();
-        notify_subscribers(new_user.clone(), &mut subscribers);
+        notify_subscribers(new_user.clone(), &new_user, &mut subscribers);
         info!("new user registered: {new_user:?}");
 
         let auth_cookie = create_auth_token(&new_user);
@@ -93,11 +94,11 @@ impl Mutation {
         info!("from user: {user:?}");
 
         let message = Message {
-            user,
+            user: user.clone(),
             message,
             date: Local::now(),
         };
-        notify_subscribers(message.clone(), &mut subscribers);
+        notify_subscribers(message.clone(), &user, &mut subscribers);
         message
     }
 }
@@ -112,16 +113,35 @@ fn get_user(ctx: &Context) -> User {
         .clone()
 }
 
-fn notify_subscribers<T: Clone + Debug>(message: T, subscribers: &mut Vec<UnboundedSender<T>>) {
-    for (i, stream) in subscribers.clone().iter().enumerate() {
-        debug!("notifying: {message:?}");
-        match stream.send(message.clone()) {
-            Err(_) if stream.is_closed() => {
-                debug!("stream disconnected - removing it");
-                subscribers.remove(i);
-            }
-            _ => {}
-        };
+fn notify_subscribers<T: Clone + Debug>(
+    message: T,
+    acting_user: &User,
+    subscribers: &mut HashMap<User, UnboundedSender<T>>,
+) {
+    let disconnected_users: Vec<_> = subscribers
+        .iter()
+        .filter(|(stream_user, _)| *stream_user != acting_user)
+        .filter_map(|(stream_user, stream)| {
+            send_message_and_check_for_disconnect(message.clone(), stream_user, stream)
+        })
+        .cloned()
+        .collect();
+
+    subscribers.retain(|stream_user, _| !disconnected_users.contains(stream_user))
+}
+
+fn send_message_and_check_for_disconnect<'a, T: Clone + Debug>(
+    message: T,
+    stream_user: &'a User,
+    stream: &'a UnboundedSender<T>,
+) -> Option<&'a User> {
+    debug!("notifying: {message:?}");
+    match stream.send(message) {
+        Err(_) if stream.is_closed() => {
+            debug!("stream disconnected - removing it");
+            Some(stream_user)
+        }
+        _ => None,
     }
 }
 
@@ -135,7 +155,7 @@ impl Subscription {
         let (sender, mut receiver) = mpsc::unbounded_channel::<User>();
 
         let mut streams = ctx.data_unchecked::<Streams<User>>().lock().unwrap();
-        streams.push(sender);
+        streams.insert(get_user(ctx), sender);
 
         stream! {
             while let Some(item) = receiver.recv().await {
@@ -150,7 +170,7 @@ impl Subscription {
         let (sender, mut receiver) = mpsc::unbounded_channel::<Message>();
 
         let mut streams = ctx.data_unchecked::<Streams<Message>>().lock().unwrap();
-        streams.push(sender);
+        streams.insert(get_user(ctx), sender);
 
         stream! {
             while let Some(item) = receiver.recv().await {
