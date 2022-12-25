@@ -80,6 +80,7 @@ mod subscribe_to_new_users {
     #[tokio::test]
     async fn get_new_users_with_authentication() {
         let schema = build_schema();
+        register_user(&schema).await;
 
         let request =
             Request::from("subscription { getNewUsers { id, name } }").data(some_auth_user());
@@ -93,7 +94,7 @@ mod subscribe_to_new_users {
 
         assert_no_error(&response);
         assert_eq!(
-            from_json!({ "getNewUsers": {"id": "User#0", "name": "user name"} }),
+            from_json!({ "getNewUsers": {"id": "User#1", "name": "user name"} }),
             response.data,
         );
     }
@@ -142,29 +143,48 @@ mod send_messages {
     async fn subscribe_to_messages_receives_sent_messages() {
         let schema = build_schema();
         register_user(&schema).await;
+        register_user(&schema).await;
 
+        let x = send_message_as_user(schema, "User#1").await;
+        let response: Response = x.unwrap();
+
+        assert_no_error(&response);
+        assert_eq!(
+            from_json!({ "getNewMessages": {
+                "user": {"id": "User#1", "name": "user name"},
+                "message": "test message"
+            }}),
+            response.data,
+        );
+    }
+
+    #[tokio::test]
+    async fn subscribe_to_messages_does_not_receive_sent_messages_from_itself() {
+        let schema = build_schema();
+        register_user(&schema).await;
+
+        let response = send_message_as_user(schema, "User#0").await;
+
+        assert_eq!(None, response);
+    }
+
+    async fn send_message_as_user(schema: Schema, user: &str) -> Option<Response> {
         let request =
             Request::from("subscription { getNewMessages { message,  user { id, name } } }")
-                .data(some_auth_user());
+                .data(auth_user("User#0".to_string()));
         let mut stream = schema.execute_stream(request);
         poll_once_to_make_stream_perform_work(&mut stream).await;
 
         let request =
             Request::from("mutation { sendMessage(message: \"test message\") { message } }")
-                .data(some_auth_user());
+                .data(auth_user(user.to_string()));
         let sent_message = schema.execute(request).await;
         assert_no_error(&sent_message);
 
-        let response: Response = stream.next().await.unwrap();
-
-        assert_no_error(&response);
-        assert_eq!(
-            from_json!({ "getNewMessages": {
-                "user": {"id": "User#0", "name": "user name"},
-                "message": "test message"
-            }}),
-            response.data,
-        );
+        match poll_once(stream.next()).await {
+            Some(Some(o)) => Some(o),
+            _ => None,
+        }
     }
 
     #[tokio::test]
@@ -223,9 +243,11 @@ async fn register_user(schema: &Schema) -> Response {
 }
 
 fn some_auth_user() -> AuthUser {
-    AuthUser {
-        id: "User#0".to_string(),
-    }
+    auth_user("User#0".to_string())
+}
+
+fn auth_user(user: String) -> AuthUser {
+    AuthUser { id: user }
 }
 
 #[macro_export]
