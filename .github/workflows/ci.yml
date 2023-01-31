@@ -56,19 +56,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install
-        run: cd react-client && npm install
+        run: cd client && npm install
       - name: Build
-        run: cd react-client && npm run build
+        run: cd client && npm run build
       - name: Test
-        run: cd react-client && npm test
+        run: cd client && npm test
 
   reactChecks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install
-        run: cd react-client && npm install
+        run: cd client && npm install
       - name: Prettier
-        run: cd react-client && npx prettier --check src
+        run: cd client && npx prettier --check src
       - name: Eslint
-        run: cd react-client && npx eslint src --ext .js,.jsx,.ts,.tsx
+        run: cd client && npx eslint src --ext .js,.jsx,.ts,.tsx

@@ -141,11 +141,11 @@ fn subscription_endpoint() -> String {
 }
 
 fn static_files_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-    warp::get().and(warp::fs::dir("../react-client/build"))
+    warp::get().and(warp::fs::dir("../client/build"))
 }
 
 fn catch_all_index_html_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-    warp::get().and(warp::fs::file("../react-client/build/index.html"))
+    warp::get().and(warp::fs::file("../client/build/index.html"))
 }
 
 fn setup_logger() {
