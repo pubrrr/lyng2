@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 async-graphql = { version = "4.0.14", features = ["log", "chrono"] }
-async-graphql-warp = "4.0.14"
+async-graphql-warp = "5.0.5"
 async-trait = "0.1.58"
 bigdecimal = "0.3.0"
 chrono = "0.4.22"
