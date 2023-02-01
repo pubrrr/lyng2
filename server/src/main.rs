@@ -118,7 +118,7 @@ fn graphiql_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> +
             .header("content-type", "text/html")
             .body(
                 GraphiQLSource::build()
-                    .endpoint("chat/")
+                    .endpoint("api/chat/")
                     .subscription_endpoint(&subscription_endpoint)
                     .finish(),
             )
@@ -129,7 +129,7 @@ fn playground_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection>
     warp::path("playground").and(warp::get()).map(|| {
         let subscription_endpoint = subscription_endpoint();
         let config =
-            GraphQLPlaygroundConfig::new("chat/").subscription_endpoint(&subscription_endpoint);
+            GraphQLPlaygroundConfig::new("api/chat/").subscription_endpoint(&subscription_endpoint);
         Response::builder()
             .header("content-type", "text/html")
             .body(playground_source(config))
