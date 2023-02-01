@@ -113,14 +113,14 @@ impl Display for LocalizedSyntaxNode {
 impl Display for SyntaxTree {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            SyntaxTree::Variable(value) => write!(f, "{}", value),
-            SyntaxTree::Number(value) => write!(f, "{}", value),
-            SyntaxTree::Sum(left, right) => write!(f, "({} + {})", left, right),
-            SyntaxTree::Product(left, right) => write!(f, "({} * {})", left, right),
-            SyntaxTree::Exponent(left, right) => write!(f, "({} ^ {})", left, right),
-            SyntaxTree::Subtraction(left, right) => write!(f, "({} - {})", left, right),
-            SyntaxTree::Division(left, right) => write!(f, "({} / {})", left, right),
-            SyntaxTree::Negation(value) => write!(f, "-{}", value),
+            SyntaxTree::Variable(value) => write!(f, "{value}"),
+            SyntaxTree::Number(value) => write!(f, "{value}"),
+            SyntaxTree::Sum(left, right) => write!(f, "({left} + {right})"),
+            SyntaxTree::Product(left, right) => write!(f, "({left} * {right})"),
+            SyntaxTree::Exponent(left, right) => write!(f, "({left} ^ {right})"),
+            SyntaxTree::Subtraction(left, right) => write!(f, "({left} - {right})"),
+            SyntaxTree::Division(left, right) => write!(f, "({left} / {right})"),
+            SyntaxTree::Negation(value) => write!(f, "-{value}"),
         }
     }
 }

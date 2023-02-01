@@ -95,7 +95,7 @@ impl Operator for PlusAndMinus {
         match &*op {
             "+" => LocalizedSyntaxNode::add(operator.end, lhs, rhs),
             "-" => LocalizedSyntaxNode::sub(operator.end, lhs, rhs),
-            _ => unreachable!("{}", op),
+            _ => unreachable!("{op}"),
         }
     }
 }
@@ -127,7 +127,7 @@ impl Operator for MulAndDiv {
         match &*op {
             "*" => LocalizedSyntaxNode::mul(operator.end, lhs, rhs),
             "/" => LocalizedSyntaxNode::div(operator.end, lhs, rhs),
-            _ => unreachable!("{}", op),
+            _ => unreachable!("{op}",),
         }
     }
 }
@@ -142,7 +142,7 @@ pub fn parse(input: String) -> Result<Vec<LocalizedSyntaxNode>, ErrorMessage> {
                 err2.fold(ErrorMessage::forgot_comma, identity)
             })
         })
-        .with_error(|error, _| error.map_message(|message| format!("Syntax Error: {}", message)))
+        .with_error(|error, _| error.map_message(|message| format!("Syntax Error: {message}",)))
         .transform(move |(first, rest)| {
             let mut result = vec![first];
             for (_, fragment) in rest {
@@ -234,8 +234,7 @@ fn parse_exponent(input: CharWrapper) -> ParseResult {
 fn parse_sign(input: CharWrapper) -> ParseResult {
     let error_mapper = |(sign_error, expression_in_brackets_error), input: CharWrapper| {
         let message = format!(
-            "expected '-' or {}, got '{}'",
-            expression_in_brackets_error,
+            "expected '-' or {expression_in_brackets_error}, got '{}'",
             input.chars.collect::<String>(),
         );
 
@@ -262,7 +261,7 @@ fn parse_expression_in_brackets(input: CharWrapper) -> ParseResult {
     let error_mapper =
         |(expression_in_brackets_error, atom_error), _| match expression_in_brackets_error {
             Either3::Left(_) => most_important_of!(
-                ErrorMessage::missing_opening_parenthesis(format!("'(' or {}", atom_error)),
+                ErrorMessage::missing_opening_parenthesis(format!("'(' or {atom_error}")),
                 atom_error
             ),
             Either3::Middle(message) => message,
@@ -313,7 +312,7 @@ fn parse_float(
         .transform(|y| y.chars);
 
     let to_float = |(leading, separator, fractional): (String, Chars, String)| {
-        let num = format!("{}{}{}", leading, separator.as_str(), fractional.as_str());
+        let num = format!("{leading}{}{}", separator.as_str(), fractional.as_str());
         BigDecimal::from_str(&num).unwrap()
     };
 

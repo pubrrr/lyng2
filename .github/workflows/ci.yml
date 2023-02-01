@@ -51,55 +51,24 @@ jobs:
           command: clippy
           args: --manifest-path server/Cargo.toml -- -D warnings
 
-  elm:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: jorelali/setup-elm@v3
-        with:
-          elm-version: 0.19.1
-      - name: Build
-        run: sh makeElm.sh
-      - name: Run tests
-        run: cd client && npx elm-test
-
-  elmCheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: jorelali/setup-elm@v3
-        with:
-          elm-version: 0.19.1
-      - name: Add elm-review, elm and elm-format to path
-        run: cd client && yarn --frozen-lockfile && yarn bin >> $GITHUB_PATH
-      - uses: sparksp/elm-format-action@v1
-        with:
-          elm_files: client/
-      - uses: sparksp/elm-review-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          elm_json: client/elm.json
-          elm_review_config: client/review
-
   react:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install
-        run: cd react-client && npm install
+        run: cd client && npm install
       - name: Build
-        run: cd react-client && npm run build
+        run: cd client && npm run build
       - name: Test
-        run: cd react-client && npm test
+        run: cd client && npm test
 
   reactChecks:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - name: Install
-        run: cd react-client && npm install
+        run: cd client && npm install
       - name: Prettier
-        run: cd react-client && npx prettier --check src
+        run: cd client && npx prettier --check src
       - name: Eslint
-        run: cd react-client && npx eslint src --ext .js,.jsx,.ts,.tsx
+        run: cd client && npx eslint src --ext .js,.jsx,.ts,.tsx

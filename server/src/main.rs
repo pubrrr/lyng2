@@ -46,7 +46,7 @@ fn address() -> SocketAddr {
         .unwrap_or_else(|_| ([127, 0, 0, 1], 8080).into())
 }
 
-fn api_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+fn api_routes() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     let schema = build_schema();
 
     let routes = lyng2_route()
@@ -60,7 +60,7 @@ fn api_routes() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone 
 
 fn chat_subscription_route(
     schema: Schema,
-) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     warp::ws()
         .and(warp::path("chat"))
         .and(graphql_protocol())
@@ -90,13 +90,13 @@ fn data_with(auth_token: Option<AuthUser>) -> Data {
     data
 }
 
-fn lyng2_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+fn lyng2_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     warp::path("math")
         .and(warp::ws())
         .map(|handshake: Ws| handshake.on_upgrade(handle_websocket_connection))
 }
 
-fn chat_route(schema: Schema) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+fn chat_route(schema: Schema) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     async_graphql_warp::graphql(schema)
         .and(warp::path("chat"))
         .and(with_auth())
@@ -111,7 +111,7 @@ fn chat_route(schema: Schema) -> impl Filter<Extract = impl Reply, Error = Rejec
         )
 }
 
-fn graphiql_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+fn graphiql_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     warp::path("graphiql").and(warp::get()).map(|| {
         let subscription_endpoint = subscription_endpoint();
         Response::builder()
@@ -125,7 +125,7 @@ fn graphiql_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Cl
     })
 }
 
-fn playground_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
+fn playground_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     warp::path("playground").and(warp::get()).map(|| {
         let subscription_endpoint = subscription_endpoint();
         let config =
@@ -140,12 +140,12 @@ fn subscription_endpoint() -> String {
     format!("ws://{host}/api/chat", host = address())
 }
 
-fn static_files_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-    warp::get().and(warp::fs::dir("../react-client/build"))
+fn static_files_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    warp::get().and(warp::fs::dir("../client/build"))
 }
 
-fn catch_all_index_html_route() -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-    warp::get().and(warp::fs::file("../react-client/build/index.html"))
+fn catch_all_index_html_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+    warp::get().and(warp::fs::file("../client/build/index.html"))
 }
 
 fn setup_logger() {
