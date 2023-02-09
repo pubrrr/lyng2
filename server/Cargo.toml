@@ -3,6 +3,9 @@ name = "lyng2"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+watch_mode = ["dep:warp-reverse-proxy"]
+
 [dependencies]
 async-graphql = { version = "5.0.5", features = ["log", "chrono"] }
 async-graphql-warp = "5.0.5"
@@ -17,6 +20,7 @@ serde = "1.0.145"
 simplelog = "0.12.0"
 tokio = { version = "1.21.2", features = ["macros", "rt-multi-thread"] }
 warp = { version = "0.3.2", features = ["tls"] }
+warp-reverse-proxy = { version = "1", optional = true }
 parser_combinator = { git = "https://github.com/ekinimo/Kirby", branch = 'main' }
 
 [dev-dependencies]

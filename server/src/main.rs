@@ -11,6 +11,8 @@ use simplelog::{CombinedLogger, ConfigBuilder, SimpleLogger, ThreadLogMode, Writ
 use warp::http::Response;
 use warp::ws::Ws;
 use warp::{Filter, Rejection, Reply};
+#[cfg(feature = "watch_mode")]
+use warp_reverse_proxy::reverse_proxy_filter;
 
 use lyng2::chat::auth::{with_auth, AuthUser};
 use lyng2::chat::{build_schema, Schema};
@@ -20,12 +22,14 @@ use lyng2::math::handle_websocket_connection;
 async fn main() {
     setup_logger();
 
-    let routes = api_routes()
-        .or(static_files_route())
-        .or(catch_all_index_html_route())
-        .with(warp::log("lyng::api"));
-
-    let server = warp::serve(routes);
+    #[cfg(feature = "watch_mode")]
+    let routes = api_routes().or(reverse_proxy_filter(
+        "".to_string(),
+        "http://localhost:3000".to_string(),
+    ));
+    #[cfg(not(feature = "watch_mode"))]
+    let routes = api_routes().or(static_files_route());
+    let server = warp::serve(routes.with(warp::log("lyng::api")));
 
     if let Ok(cert_path) = std::env::var("CERT_PATH") {
         info!("starting TLS server - using certificates from {cert_path}");
@@ -140,12 +144,9 @@ fn subscription_endpoint() -> String {
     format!("ws://{host}/api/chat", host = address())
 }
 
+#[cfg(not(feature = "watch_mode"))]
 fn static_files_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     warp::get().and(warp::fs::dir("../client/build"))
-}
-
-fn catch_all_index_html_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-    warp::get().and(warp::fs::file("../client/build/index.html"))
 }
 
 fn setup_logger() {
