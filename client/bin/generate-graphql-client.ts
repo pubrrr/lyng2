@@ -6,23 +6,28 @@ import * as typescriptReactApollo from "@graphql-codegen/typescript-react-apollo
 import * as fs from "fs";
 import { loadDocuments } from "@graphql-tools/load";
 import { GraphQLFileLoader } from "@graphql-tools/graphql-file-loader";
+import { readFile } from "fs/promises";
+import { exec } from "child_process";
+
+const useLocalSchema = !!process.env.DOCKER;
 
 function getInput() {
-    return new Promise<string>(function (resolve, reject) {
-        const stdin = process.stdin;
-        let data = "";
-
-        stdin.setEncoding("utf8");
-        stdin.on("data", function (chunk: string) {
-            data += chunk;
-        });
-
-        stdin.on("end", function () {
-            resolve(data);
-        });
-
-        stdin.on("error", reject);
-    });
+    return useLocalSchema
+        ? readFile("schema.gql").then((buffer) => buffer.toString())
+        : new Promise<string>(function (resolve, reject) {
+              exec("cd ../server && cargo run -q --bin export_schema", (error, stdout, stderr) => {
+                  if (error) {
+                      console.log(`error: ${error.message}`);
+                      return reject(error);
+                  }
+                  if (stderr) {
+                      console.log(`stderr: ${stderr}`);
+                      return reject(stderr);
+                  }
+                  console.log("generated GQL schema from Rust code");
+                  resolve(stdout);
+              });
+          });
 }
 
 async function generateGqlTypes(schema: string) {
@@ -59,6 +64,6 @@ const outputFile = "src/chat/gql-types.ts";
 
 fs.writeFile(outputFile, output, (error: any) => {
     if (error) {
-        console.log(error);
+        console.log("error when writing gql-types: " + JSON.stringify(error));
     }
 });

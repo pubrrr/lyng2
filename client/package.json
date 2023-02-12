@@ -29,7 +29,7 @@
         "test": "tsc && react-scripts test",
         "eject": "react-scripts eject",
         "prettier": "npx prettier --write src",
-        "generate-gql": "(cd ../server && cargo run --bin export_schema) | npx ts-node --esm bin/generate-graphql-client.ts && npx prettier --write src/chat/gql-types.ts",
+        "generate-gql": "npx ts-node --esm bin/generate-graphql-client.ts && npx prettier --write src/chat/gql-types.ts",
         "dump-gql": "(cd ../server && cargo run --bin export_schema) > schema.gql",
         "postinstall": "npm run generate-gql"
     },
