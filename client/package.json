@@ -57,7 +57,7 @@
         "@graphql-codegen/typescript": "^2.8.8",
         "@graphql-codegen/typescript-operations": "^2.5.6",
         "@graphql-codegen/typescript-react-apollo": "^3.3.7",
-        "@graphql-tools/graphql-file-loader": "^7.5.15",
+        "@graphql-tools/graphql-file-loader": "^7.5.16",
         "@testing-library/jest-dom": "^5.16.4",
         "@testing-library/react": "^13.2.0",
         "@testing-library/user-event": "^14.4.3",
