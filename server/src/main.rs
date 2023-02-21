@@ -49,10 +49,10 @@ fn address() -> SocketAddr {
         .ok()
         .map(|address| SocketAddr::from_str(&address).unwrap())
         .or_else(|| {
-            std::env::args()
-                .skip(1)
-                .next()
-                .map(|address| SocketAddr::from_str(&address).expect(&format!("{address} was no valid socket address")))
+            std::env::args().nth(1).map(|address| {
+                SocketAddr::from_str(&address)
+                    .unwrap_or_else(|_| panic!("{address} was no valid socket address"))
+            })
         })
         .unwrap_or_else(|| ([127, 0, 0, 1], 8080).into())
 }
