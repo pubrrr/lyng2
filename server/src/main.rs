@@ -46,8 +46,15 @@ async fn main() {
 
 fn address() -> SocketAddr {
     std::env::var("ADDRESS")
+        .ok()
         .map(|address| SocketAddr::from_str(&address).unwrap())
-        .unwrap_or_else(|_| ([127, 0, 0, 1], 8080).into())
+        .or_else(|| {
+            std::env::args().nth(1).map(|address| {
+                SocketAddr::from_str(&address)
+                    .unwrap_or_else(|_| panic!("{address} was no valid socket address"))
+            })
+        })
+        .unwrap_or_else(|| ([127, 0, 0, 1], 8080).into())
 }
 
 fn api_routes() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {

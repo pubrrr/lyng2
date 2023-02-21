@@ -7,6 +7,7 @@ on:
 env:
   CARGO_TERM_COLOR: always
   CI: true
+  IMAGE_NAME: ghcr.io/pubrrr/lyng2
 
 jobs:
   rust:
@@ -54,7 +55,7 @@ jobs:
   react:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install
         run: cd client && npm install
       - name: Build
@@ -65,10 +66,33 @@ jobs:
   reactChecks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Install
         run: cd client && npm install
       - name: Prettier
         run: cd client && npx prettier --check src
       - name: Eslint
         run: cd client && npx eslint src --ext .js,.jsx,.ts,.tsx
+
+  dockerImage:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v3
+      - name: Get branch name
+        run: |
+          echo "BRANCH=$(eval 'echo $GITHUB_REF | sed s/refs\\/heads\\/// | sed s/\\//__/g ')" >> $GITHUB_ENV
+      - name: Build image
+        run: docker build -t new_image .
+      - name: Login to Github Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Add tags and push
+        if: ${{ !contains(env.BRANCH, 'dependabot') }}
+        run: |
+          docker tag new_image ${{ env.IMAGE_NAME }}:branch-${{ env.BRANCH }}
+          docker push ${{ env.IMAGE_NAME }}:branch-${{ env.BRANCH }}
+      - name: Add tags and push
+        if: env.BRANCH == 'master'
+        run: |
+          docker tag new_image ${{ env.IMAGE_NAME }}:latest
+          docker push ${{ env.IMAGE_NAME }}:latest
