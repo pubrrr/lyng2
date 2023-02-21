@@ -25,5 +25,5 @@ parser_combinator = { git = "https://github.com/ekinimo/Kirby", branch = 'main' 
 
 [dev-dependencies]
 tokio-test = "0.4.2"
-serde_json = "1.0.92"
+serde_json = "1.0.93"
 futures-lite = "1.12.0"
