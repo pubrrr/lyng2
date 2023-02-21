@@ -7,7 +7,7 @@ edition = "2021"
 watch_mode = ["dep:warp-reverse-proxy"]
 
 [dependencies]
-async-graphql = { version = "5.0.5", features = ["log", "chrono"] }
+async-graphql = { version = "5.0.6", features = ["log", "chrono"] }
 async-graphql-warp = "5.0.5"
 async-trait = "0.1.58"
 bigdecimal = "0.3.0"
