@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Chat", () => {
     test.beforeEach(async ({ page }) => {
-        await page.goto("http://localhost:8080/");
+        await page.goto("/");
         await page.getByRole("link", { name: "Chat" }).click();
     });
 
