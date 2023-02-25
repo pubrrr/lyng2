@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
+use std::marker::PhantomData;
 use std::sync::Mutex;
 
 use async_graphql::async_stream::stream;
@@ -13,15 +14,17 @@ use tokio::sync::mpsc::UnboundedSender;
 use warp::http::header::SET_COOKIE;
 
 use crate::chat::auth::{create_auth_token, AuthExtensionFactory, AuthUser, AUTH_COOKIE_NAME};
+use crate::chat::repository::ChatRepository;
 
 pub mod auth;
+pub mod repository;
 #[cfg(test)]
 mod test;
 
-type Users = Mutex<Vec<User>>;
 type Streams<T> = Mutex<HashMap<User, UnboundedSender<T>>>;
 
-pub type Schema = async_graphql::Schema<Query, Mutation, Subscription>;
+pub type Schema<Repository> =
+    async_graphql::Schema<Query<Repository>, Mutation<Repository>, Subscription<Repository>>;
 
 #[derive(Clone, Debug, SimpleObject, Hash, Eq, PartialEq)]
 pub struct User {
@@ -36,42 +39,46 @@ pub struct Message {
     date: DateTime<Local>,
 }
 
-pub fn build_schema() -> Schema {
-    Schema::build(Query, Mutation, Subscription)
-        .data(Users::default())
-        .data(Streams::<User>::default())
-        .data(Streams::<Message>::default())
-        .extension(Logger)
-        .extension(AuthExtensionFactory)
-        .finish()
+pub fn build_schema<Repository: ChatRepository + 'static>() -> Schema<Repository> {
+    Schema::build(
+        Query::default(),
+        Mutation::default(),
+        Subscription::default(),
+    )
+    .data(Repository::new())
+    .data(Streams::<User>::default())
+    .data(Streams::<Message>::default())
+    .extension(Logger)
+    .extension(AuthExtensionFactory)
+    .finish()
 }
 
-pub struct Query;
+#[derive(Default)]
+pub struct Query<Repository> {
+    phantom: PhantomData<Repository>,
+}
 
 #[Object]
-impl Query {
+impl<Repository: ChatRepository + 'static> Query<Repository> {
     async fn get_users<'a>(&self, ctx: &Context<'a>) -> Vec<User> {
-        ctx.data_unchecked::<Users>().lock().unwrap().clone()
+        ctx.data_unchecked::<Repository>().get_users()
     }
 
     async fn logged_in_user<'a>(&self, ctx: &Context<'a>) -> Option<User> {
-        let users = ctx.data_unchecked::<Users>().lock().unwrap();
         let auth_user = ctx.data_opt::<AuthUser>()?;
-        users.iter().find(|user| user.id == auth_user.id).cloned()
+        ctx.data_unchecked::<Repository>().get_user(&auth_user.id)
     }
 }
 
-pub struct Mutation;
+#[derive(Default)]
+pub struct Mutation<Repository> {
+    phantom: PhantomData<Repository>,
+}
 
 #[Object]
-impl Mutation {
+impl<Repository: ChatRepository + 'static> Mutation<Repository> {
     async fn register(&self, ctx: &Context<'_>, name: String) -> User {
-        let mut users = ctx.data_unchecked::<Users>().lock().unwrap();
-        let new_user = User {
-            id: format!("User#{id}", id = users.len()),
-            name,
-        };
-        users.push(new_user.clone());
+        let new_user = ctx.data_unchecked::<Repository>().register_new_user(name);
 
         let mut subscribers = ctx.data_unchecked::<Streams<User>>().lock().unwrap();
         notify_subscribers(new_user.clone(), &new_user, &mut subscribers);
@@ -90,7 +97,7 @@ impl Mutation {
         info!("new message received: {message}");
         let mut subscribers = ctx.data_unchecked::<Streams<Message>>().lock().unwrap();
 
-        let user = get_user(ctx);
+        let user = get_user::<Repository>(ctx);
         info!("from user: {user:?}");
 
         let message = Message {
@@ -103,14 +110,11 @@ impl Mutation {
     }
 }
 
-fn get_user(ctx: &Context) -> User {
+fn get_user<Repository: ChatRepository + 'static>(ctx: &Context) -> User {
     let auth_user = ctx.data_unchecked::<AuthUser>();
-    let users = ctx.data_unchecked::<Users>().lock().unwrap();
-    users
-        .iter()
-        .find(|user| user.id == auth_user.id)
+    ctx.data_unchecked::<Repository>()
+        .get_user(&auth_user.id)
         .unwrap()
-        .clone()
 }
 
 fn notify_subscribers<T: Clone + Debug>(
@@ -145,17 +149,20 @@ fn send_message_and_check_for_disconnect<'a, T: Clone + Debug>(
     }
 }
 
-pub struct Subscription;
+#[derive(Default)]
+pub struct Subscription<Repository> {
+    phantom: PhantomData<Repository>,
+}
 
 #[Subscription]
-impl Subscription {
+impl<Repository: ChatRepository + 'static> Subscription<Repository> {
     async fn get_new_users(&self, ctx: &Context<'_>) -> impl Stream<Item = User> {
         info!("new subscription for users");
 
         let (sender, mut receiver) = mpsc::unbounded_channel::<User>();
 
         let mut streams = ctx.data_unchecked::<Streams<User>>().lock().unwrap();
-        streams.insert(get_user(ctx), sender);
+        streams.insert(get_user::<Repository>(ctx), sender);
 
         stream! {
             while let Some(item) = receiver.recv().await {
@@ -170,7 +177,7 @@ impl Subscription {
         let (sender, mut receiver) = mpsc::unbounded_channel::<Message>();
 
         let mut streams = ctx.data_unchecked::<Streams<Message>>().lock().unwrap();
-        streams.insert(get_user(ctx), sender);
+        streams.insert(get_user::<Repository>(ctx), sender);
 
         stream! {
             while let Some(item) = receiver.recv().await {
