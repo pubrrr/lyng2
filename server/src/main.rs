@@ -15,6 +15,7 @@ use warp::{Filter, Rejection, Reply};
 use warp_reverse_proxy::reverse_proxy_filter;
 
 use lyng2::chat::auth::{with_auth, AuthUser};
+use lyng2::chat::repository::{ChatRepository, InMemoryRepository};
 use lyng2::chat::{build_schema, Schema};
 use lyng2::math::handle_websocket_connection;
 
@@ -58,7 +59,7 @@ fn address() -> SocketAddr {
 }
 
 fn api_routes() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-    let schema = build_schema();
+    let schema = build_schema::<InMemoryRepository>();
 
     let routes = lyng2_route()
         .or(chat_subscription_route(schema.clone()))
@@ -69,8 +70,8 @@ fn api_routes() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clo
     warp::path("api").and(routes)
 }
 
-fn chat_subscription_route(
-    schema: Schema,
+fn chat_subscription_route<R: ChatRepository + 'static>(
+    schema: Schema<R>,
 ) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     warp::ws()
         .and(warp::path("chat"))
@@ -107,12 +108,14 @@ fn lyng2_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Cl
         .map(|handshake: Ws| handshake.on_upgrade(handle_websocket_connection))
 }
 
-fn chat_route(schema: Schema) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
+fn chat_route<R: ChatRepository + 'static>(
+    schema: Schema<R>,
+) -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
     async_graphql_warp::graphql(schema)
         .and(warp::path("chat"))
         .and(with_auth())
         .and_then(
-            |(schema, request): (Schema, Request), auth_token| async move {
+            |(schema, request): (Schema<R>, Request), auth_token| async move {
                 let request = match auth_token {
                     None => request,
                     Some(auth_user) => request.data(auth_user),
