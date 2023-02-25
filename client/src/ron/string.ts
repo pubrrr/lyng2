@@ -1,5 +1,5 @@
-import { apply, tok, Token } from "typescript-parsec";
-import { RonToken } from "./common";
+import { apply, tok, Token } from 'typescript-parsec';
+import { RonToken } from './common';
 
 export const string = apply(tok(RonToken.String), stripDoubleQuotes).parse;
 

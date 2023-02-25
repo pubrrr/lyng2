@@ -1,23 +1,23 @@
-import { ApolloProvider } from "@apollo/client";
-import { useLoggedInUserQuery } from "./gql-types";
-import { getApolloClient } from "./apolloClient";
-import Box from "@mui/material/Box";
-import Toolbar from "@mui/material/Toolbar";
-import Typography from "@mui/material/Typography";
-import AppBar from "@mui/material/AppBar";
-import { Button, CircularProgress, Drawer } from "@mui/material";
-import { Users } from "./Users";
-import { Register } from "./Register";
-import { PropsWithChildren } from "react";
-import { Chat } from "./Chat";
-import { ArrowBackIosNew } from "@mui/icons-material";
+import { ApolloProvider } from '@apollo/client';
+import { useLoggedInUserQuery } from './gql-types';
+import { getApolloClient } from './apolloClient';
+import Box from '@mui/material/Box';
+import Toolbar from '@mui/material/Toolbar';
+import Typography from '@mui/material/Typography';
+import AppBar from '@mui/material/AppBar';
+import { Button, CircularProgress, Drawer } from '@mui/material';
+import { Users } from './Users';
+import { Register } from './Register';
+import { PropsWithChildren } from 'react';
+import { Chat } from './Chat';
+import { ArrowBackIosNew } from '@mui/icons-material';
 
 const drawerWidth = 240;
 
 export function ChatApp() {
     return (
         <ApolloProvider client={getApolloClient()}>
-            <Box sx={{ display: "flex", height: "100vh" }}>
+            <Box sx={{ display: 'flex', height: '100vh' }}>
                 <ChatContainer />
             </Box>
         </ApolloProvider>
@@ -27,9 +27,9 @@ export function ChatApp() {
 function ChatContainer() {
     let { data } = useLoggedInUserQuery();
 
-    let title = "Lyng Chat";
+    let title = 'Lyng Chat';
     if (data?.loggedInUser) {
-        title += " - " + data.loggedInUser.name;
+        title += ' - ' + data.loggedInUser.name;
     }
 
     return (
@@ -39,13 +39,13 @@ function ChatContainer() {
                 <Sidebar>{data?.loggedInUser?.name && <Users />}</Sidebar>
             </Box>
             <Box
-                component="main"
+                component='main'
                 sx={{
                     flexGrow: 1,
-                    bgcolor: "background.default",
+                    bgcolor: 'background.default',
                     p: 3,
-                    display: "flex",
-                    flexDirection: "column",
+                    display: 'flex',
+                    flexDirection: 'column',
                 }}
             >
                 <Toolbar />
@@ -57,13 +57,13 @@ function ChatContainer() {
 
 function Header(props: { title: string }) {
     return (
-        <AppBar position="fixed">
+        <AppBar position='fixed'>
             <Toolbar>
-                <Button href="/">
-                    <ArrowBackIosNew sx={{ color: "white" }} />
+                <Button href='/'>
+                    <ArrowBackIosNew sx={{ color: 'white' }} />
                 </Button>
-                <Box sx={{ position: "fixed", ml: `${drawerWidth}px` }}>
-                    <Typography variant="h6" noWrap component="div">
+                <Box sx={{ position: 'fixed', ml: `${drawerWidth}px` }}>
+                    <Typography variant='h6' noWrap component='div'>
                         {props.title}
                     </Typography>
                 </Box>
@@ -78,13 +78,13 @@ function Sidebar(props: PropsWithChildren) {
             sx={{
                 width: drawerWidth,
                 flexShrink: 0,
-                "& .MuiDrawer-paper": {
+                '& .MuiDrawer-paper': {
                     width: drawerWidth,
-                    boxSizing: "border-box",
+                    boxSizing: 'border-box',
                 },
             }}
-            variant="permanent"
-            anchor="left"
+            variant='permanent'
+            anchor='left'
         >
             <Toolbar />
             {props.children}

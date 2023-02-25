@@ -1,18 +1,18 @@
-import React from "react";
-import Loading from "./Loading";
-import Editor, { websocketUrl } from "./Editor";
-import LostConnection from "./LostConnection";
-import useWebSocket, { ReadyState } from "react-use-websocket";
-import { Link, Route, Routes } from "react-router-dom";
-import { ChatApp } from "./chat";
-import { Box, Card, CardActionArea, CardContent, Typography } from "@mui/material";
+import React from 'react';
+import Loading from './Loading';
+import Editor, { websocketUrl } from './Editor';
+import LostConnection from './LostConnection';
+import useWebSocket, { ReadyState } from 'react-use-websocket';
+import { Link, Route, Routes } from 'react-router-dom';
+import { ChatApp } from './chat';
+import { Box, Card, CardActionArea, CardContent, Typography } from '@mui/material';
 
 function App() {
     return (
         <Routes>
-            <Route path="/" element={<Menu />} />
-            <Route path="lyng" element={<LyngApp />} />
-            <Route path="chat" element={<ChatApp />} />
+            <Route path='/' element={<Menu />} />
+            <Route path='lyng' element={<LyngApp />} />
+            <Route path='chat' element={<ChatApp />} />
         </Routes>
     );
 }
@@ -21,14 +21,14 @@ function Menu() {
     return (
         <Box
             sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "100vh",
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh',
             }}
         >
-            <LinkCard to={"lyng"} text="Lyng" />
-            <LinkCard to={"chat"} text="Chat" />
+            <LinkCard to={'lyng'} text='Lyng' />
+            <LinkCard to={'chat'} text='Chat' />
         </Box>
     );
 }
@@ -43,16 +43,16 @@ function LinkCard(props: { to: string; text: string }) {
             <CardActionArea component={Link} to={props.to}>
                 <CardContent
                     sx={{
-                        height: "100%",
-                        margin: "auto",
-                        display: "flex",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        minWidth: "10em",
-                        minHeight: "5em",
+                        height: '100%',
+                        margin: 'auto',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        minWidth: '10em',
+                        minHeight: '5em',
                     }}
                 >
-                    <Typography variant="h5">{props.text}</Typography>
+                    <Typography variant='h5'>{props.text}</Typography>
                 </CardContent>
             </CardActionArea>
         </Card>

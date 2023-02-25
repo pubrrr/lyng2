@@ -1,6 +1,6 @@
-import { ParseResult as ParsecParseResult, ParserOutput, Token } from "typescript-parsec";
-import { RonToken } from "./common";
-import { string } from "./string";
+import { ParseResult as ParsecParseResult, ParserOutput, Token } from 'typescript-parsec';
+import { RonToken } from './common';
+import { string } from './string';
 
 type ParseResult<T> = ParsecParseResult<RonToken, T>;
 
@@ -14,7 +14,7 @@ export function number(token: Token<RonToken> | undefined): ParserOutput<RonToke
     const parsedNumberCandidates = stringResult.candidates.map(tryToParseToNumber);
 
     let unparseableString = parsedNumberCandidates.find(
-        (value: ParseResult<string> | ParseResult<number>) => typeof value.result == "string"
+        (value: ParseResult<string> | ParseResult<number>) => typeof value.result == 'string'
     );
     if (unparseableString !== undefined) {
         return createErrorFor(unparseableString as ParseResult<string>);
@@ -26,9 +26,7 @@ export function number(token: Token<RonToken> | undefined): ParserOutput<RonToke
     };
 }
 
-function tryToParseToNumber(
-    candidate: ParseResult<string>
-): ParseResult<string> | ParseResult<number> {
+function tryToParseToNumber(candidate: ParseResult<string>): ParseResult<string> | ParseResult<number> {
     if (!looksLikeANumber(candidate)) {
         return candidate;
     }
@@ -52,9 +50,9 @@ function createErrorFor(unparsableString: ParseResult<string>): ParserOutput<Ron
     return {
         successful: false,
         error: {
-            kind: "Error",
+            kind: 'Error',
             pos: undefined,
-            message: "could not parse " + unparsableString.result + " to a number",
+            message: 'could not parse ' + unparsableString.result + ' to a number',
         },
     };
 }

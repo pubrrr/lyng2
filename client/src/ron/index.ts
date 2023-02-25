@@ -1,16 +1,14 @@
-import { buildLexer, expectEOF } from "typescript-parsec";
-import { RonDecoder, RonToken, StringLiteral } from "./common";
-import { string } from "./string";
-import { number } from "./number";
-import { ronEnum } from "./enum";
-import { tupleStruct, TupleStruct } from "./tupleStruct";
+import { buildLexer, expectEOF } from 'typescript-parsec';
+import { RonDecoder, RonToken, StringLiteral } from './common';
+import { string } from './string';
+import { number } from './number';
+import { ronEnum } from './enum';
+import { tupleStruct, TupleStruct } from './tupleStruct';
 
 export { string, number, tupleStruct, ronEnum };
 export type { TupleStruct, StringLiteral };
 
-export type RonValue<Decoder extends RonDecoder<any>> = Decoder extends RonDecoder<infer Value>
-    ? Value
-    : never;
+export type RonValue<Decoder extends RonDecoder<any>> = Decoder extends RonDecoder<infer Value> ? Value : never;
 
 export type Result<V> =
     | {
@@ -38,7 +36,7 @@ export function decode<V>(input: string, decoder: RonDecoder<V>): Result<V> {
     } catch (e) {
         return {
             success: false,
-            error: e instanceof Error ? e.message : "could not lex RON input",
+            error: e instanceof Error ? e.message : 'could not lex RON input',
         };
     }
     const parseResult = expectEOF(decoder(token));
@@ -49,13 +47,13 @@ export function decode<V>(input: string, decoder: RonDecoder<V>): Result<V> {
     if (parseResult.candidates.length === 0) {
         return {
             success: false,
-            error: "Decoding RON value returned no result",
+            error: 'Decoding RON value returned no result',
         };
     }
     if (parseResult.candidates.length > 1) {
         return {
             success: false,
-            error: "Decoding RON value returned ambiguous values",
+            error: 'Decoding RON value returned ambiguous values',
         };
     }
     return { success: true, value: parseResult.candidates[0].result };

@@ -1,4 +1,4 @@
-import { ParserOutput, Token } from "typescript-parsec";
+import { ParserOutput, Token } from 'typescript-parsec';
 
 export enum RonToken {
     Identifier,
