@@ -74,6 +74,7 @@ jobs:
         run: cd client && npx eslint src --ext .js,.jsx,.ts,.tsx
 
   dockerImage:
+    name: 'Build Docker image'
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'push' }}
     steps:
@@ -81,7 +82,7 @@ jobs:
       - name: Get branch name
         run: |
           echo "BRANCH=$(eval 'echo $GITHUB_REF | sed s/refs\\/heads\\/// | sed s/\\//__/g ')" >> $GITHUB_ENV
-      - name: Docker meta
+      - name: Docker metadata
         id: meta
         uses: docker/metadata-action@v4
         with:
@@ -106,3 +107,33 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=registry,ref=ghcr.io/pubrrr/lyng2:latest
           cache-to: type=inline
+
+  playwrightTests:
+    name: 'Playwright Tests'
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: cd tests && npm ci
+      - name: Install Playwright Browsers
+        run: cd tests && npx playwright install --with-deps
+      - name: Wait for Docker image
+        uses: lewagon/wait-on-check-action@v1.3.1
+        with:
+          ref: ${{ github.ref }}
+          check-name: 'Build Docker image'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Start Lyng2 Docker container
+        run: "docker run -p 3000:80 -d ghcr.io/pubrrr/lyng2:${GITHUB_REF##*/}"
+      - name: Run Playwright tests
+        run: cd tests && BASE_URL=http://localhost:3000 npx playwright test
+      - uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: playwright-report
+          path: tests/playwright-report/
+          retention-days: 2
