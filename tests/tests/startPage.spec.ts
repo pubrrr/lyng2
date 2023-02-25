@@ -1,9 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { expect } from '@playwright/test';
+import { lyngTest } from './fixture';
 
-test('Lyng main page shows links', async ({ page }) => {
-    await page.goto('/');
-
-    await expect(page).toHaveTitle(/Lyng/);
-    await expect(page.getByRole('link', { name: 'Lyng' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Chat' })).toBeVisible();
+lyngTest('Lyng main page shows links', async ({ mainPage }) => {
+    await expect(mainPage.page).toHaveTitle(/Lyng/);
+    await expect(mainPage.lyngLink).toBeVisible();
+    await expect(mainPage.chatLink).toBeVisible();
 });
