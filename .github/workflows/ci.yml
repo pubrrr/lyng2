@@ -105,7 +105,7 @@ jobs:
           context: .
           push: ${{ github.event_name != 'pull_request' && !contains(env.BRANCH, 'dependabot') }}
           tags: ${{ steps.meta.outputs.tags }}
-          cache-from: type=registry,ref=ghcr.io/pubrrr/lyng2:latest
+          cache-from: type=registry,ref=ghcr.io/pubrrr/lyng2:${{ steps.meta.outputs.tags[0] }}
           cache-to: type=inline
 
   playwrightTests:
