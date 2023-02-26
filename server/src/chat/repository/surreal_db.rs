@@ -39,7 +39,7 @@ struct GenericSurrealDbAdapter<C: Connection> {
     pub database: Surreal<C>,
 }
 
-const CHAT_USER: &'static str = "chat_user";
+const CHAT_USER: &str = "chat_user";
 
 impl<C: Connection> GenericSurrealDbAdapter<C> {
     async fn get_users(&self) -> Vec<User> {
@@ -67,14 +67,14 @@ impl<C: Connection> GenericSurrealDbAdapter<C> {
 }
 
 async fn get_db() -> Result<Surreal<Client>, Error> {
-    let surreal_address = "localhost:8000";
+    let surreal_address = std::env::var("SURREAL_ADDRESS").unwrap();
     debug!("connecting to SurrealDB at {surreal_address}");
     let database = Surreal::new::<Ws>(surreal_address).await?;
 
     database
         .signin(Root {
-            username: "root",
-            password: "root",
+            username: &std::env::var("SURREAL_USER").unwrap(),
+            password: &std::env::var("SURREAL_PASSWORD").unwrap(),
         })
         .await?;
     database.use_ns("namespace").use_db("database").await?;
