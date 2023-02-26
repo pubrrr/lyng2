@@ -15,7 +15,8 @@ use warp::{Filter, Rejection, Reply};
 use warp_reverse_proxy::reverse_proxy_filter;
 
 use lyng2::chat::auth::{with_auth, AuthUser};
-use lyng2::chat::repository::{ChatRepository, InMemoryRepository};
+use lyng2::chat::repository::surreal_db::SurrealDbAdapter;
+use lyng2::chat::repository::ChatRepository;
 use lyng2::chat::{build_schema, Schema};
 use lyng2::math::handle_websocket_connection;
 
@@ -59,7 +60,7 @@ fn address() -> SocketAddr {
 }
 
 fn api_routes() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-    let schema = build_schema::<InMemoryRepository>();
+    let schema = build_schema::<SurrealDbAdapter>();
 
     let routes = lyng2_route()
         .or(chat_subscription_route(schema.clone()))
@@ -156,7 +157,8 @@ fn subscription_endpoint() -> String {
 
 #[cfg(not(feature = "watch_mode"))]
 fn static_files_route() -> impl Filter<Extract = (impl Reply,), Error = Rejection> + Clone {
-    warp::get().and(warp::fs::dir("../client/build"))
+    warp::fs::dir("../client/build")
+        .or(warp::get().and(warp::fs::file("../client/build/index.html")))
 }
 
 fn setup_logger() {
