@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use std::sync::Mutex;
+use tokio::sync::Mutex;
 
 use async_graphql::async_stream::stream;
 use async_graphql::extensions::Logger;
@@ -9,6 +9,7 @@ use async_graphql::{Context, Object, SimpleObject, Subscription};
 use chrono::{DateTime, Local};
 use futures_util::Stream;
 use log::{debug, info};
+use serde::Deserialize;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::UnboundedSender;
 use warp::http::header::SET_COOKIE;
@@ -26,7 +27,7 @@ type Streams<T> = Mutex<HashMap<User, UnboundedSender<T>>>;
 pub type Schema<Repository> =
     async_graphql::Schema<Query<Repository>, Mutation<Repository>, Subscription<Repository>>;
 
-#[derive(Clone, Debug, SimpleObject, Hash, Eq, PartialEq)]
+#[derive(Clone, Debug, SimpleObject, Hash, Eq, PartialEq, Deserialize)]
 pub struct User {
     id: String,
     name: String,
@@ -45,7 +46,7 @@ pub fn build_schema<Repository: ChatRepository + 'static>() -> Schema<Repository
         Mutation::default(),
         Subscription::default(),
     )
-    .data(Repository::new())
+    .data(Repository::default())
     .data(Streams::<User>::default())
     .data(Streams::<Message>::default())
     .extension(Logger)
@@ -61,12 +62,19 @@ pub struct Query<Repository> {
 #[Object]
 impl<Repository: ChatRepository + 'static> Query<Repository> {
     async fn get_users<'a>(&self, ctx: &Context<'a>) -> Vec<User> {
-        ctx.data_unchecked::<Repository>().get_users()
+        info!("calling get_users");
+        ctx.data_unchecked::<Repository>().get_users().await
     }
 
     async fn logged_in_user<'a>(&self, ctx: &Context<'a>) -> Option<User> {
         let auth_user = ctx.data_opt::<AuthUser>()?;
-        ctx.data_unchecked::<Repository>().get_user(&auth_user.id)
+        info!("calling logged_in_user");
+        let user = ctx
+            .data_unchecked::<Repository>()
+            .get_user(&auth_user.id)
+            .await;
+        info!("found logged in user: {user:?}");
+        user
     }
 }
 
@@ -78,9 +86,12 @@ pub struct Mutation<Repository> {
 #[Object]
 impl<Repository: ChatRepository + 'static> Mutation<Repository> {
     async fn register(&self, ctx: &Context<'_>, name: String) -> User {
-        let new_user = ctx.data_unchecked::<Repository>().register_new_user(name);
+        let new_user = ctx
+            .data_unchecked::<Repository>()
+            .register_new_user(name)
+            .await;
 
-        let mut subscribers = ctx.data_unchecked::<Streams<User>>().lock().unwrap();
+        let mut subscribers = ctx.data_unchecked::<Streams<User>>().lock().await;
         notify_subscribers(new_user.clone(), &new_user, &mut subscribers);
         info!("new user registered: {new_user:?}");
 
@@ -95,9 +106,9 @@ impl<Repository: ChatRepository + 'static> Mutation<Repository> {
 
     async fn send_message(&self, ctx: &Context<'_>, message: String) -> Message {
         info!("new message received: {message}");
-        let mut subscribers = ctx.data_unchecked::<Streams<Message>>().lock().unwrap();
+        let mut subscribers = ctx.data_unchecked::<Streams<Message>>().lock().await;
 
-        let user = get_user::<Repository>(ctx);
+        let user = get_user::<Repository>(ctx).await;
         info!("from user: {user:?}");
 
         let message = Message {
@@ -110,10 +121,11 @@ impl<Repository: ChatRepository + 'static> Mutation<Repository> {
     }
 }
 
-fn get_user<Repository: ChatRepository + 'static>(ctx: &Context) -> User {
+async fn get_user<Repository: ChatRepository + 'static>(ctx: &Context<'_>) -> User {
     let auth_user = ctx.data_unchecked::<AuthUser>();
     ctx.data_unchecked::<Repository>()
         .get_user(&auth_user.id)
+        .await
         .unwrap()
 }
 
@@ -161,8 +173,8 @@ impl<Repository: ChatRepository + 'static> Subscription<Repository> {
 
         let (sender, mut receiver) = mpsc::unbounded_channel::<User>();
 
-        let mut streams = ctx.data_unchecked::<Streams<User>>().lock().unwrap();
-        streams.insert(get_user::<Repository>(ctx), sender);
+        let mut streams = ctx.data_unchecked::<Streams<User>>().lock().await;
+        streams.insert(get_user::<Repository>(ctx).await, sender);
 
         stream! {
             while let Some(item) = receiver.recv().await {
@@ -176,8 +188,8 @@ impl<Repository: ChatRepository + 'static> Subscription<Repository> {
 
         let (sender, mut receiver) = mpsc::unbounded_channel::<Message>();
 
-        let mut streams = ctx.data_unchecked::<Streams<Message>>().lock().unwrap();
-        streams.insert(get_user::<Repository>(ctx), sender);
+        let mut streams = ctx.data_unchecked::<Streams<Message>>().lock().await;
+        streams.insert(get_user::<Repository>(ctx).await, sender);
 
         stream! {
             while let Some(item) = receiver.recv().await {
