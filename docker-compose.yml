@@ -1,0 +1,15 @@
+version: "3.9"
+services:
+  lyng:
+    image: ghcr.io/pubrrr/lyng2:${LYNG_TAG}
+    ports:
+      - "${LYNG_PORT}:80"
+    environment:
+      SURREAL_ADDRESS: surrealDb:8000
+      SURREAL_USER: root
+      SURREAL_PASSWORD: root
+  surrealDb:
+    image: surrealdb/surrealdb:nightly
+    command: start -u root -p root -b 0.0.0.0:8000
+    ports:
+      - ":8000"

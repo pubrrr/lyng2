@@ -127,10 +127,14 @@ jobs:
           ref: ${{ github.ref }}
           check-name: 'Build Docker image'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Start Lyng2 Docker container
-        run: "docker run -p 3000:80 -d ghcr.io/pubrrr/lyng2:${GITHUB_REF##*/}"
+      - name: Start Docker containers
+        run: |
+          echo "pulling lyng tag ${GITHUB_REF##*/}"
+          LYNG_TAG=${GITHUB_REF##*/} LYNG_PORT=3000 docker compose up -d
       - name: Run Playwright tests
         run: cd tests && BASE_URL=http://localhost:3000 npx playwright test
+      - name: Stop Docker containers
+        run: docker compose down
       - uses: actions/upload-artifact@v3
         if: always()
         with:
