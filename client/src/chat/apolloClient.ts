@@ -1,14 +1,14 @@
-import { GraphQLWsLink } from "@apollo/client/link/subscriptions";
-import { createClient } from "graphql-ws";
-import { ApolloClient, DocumentNode, HttpLink, InMemoryCache, split } from "@apollo/client";
-import { getMainDefinition } from "@apollo/client/utilities";
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { createClient } from 'graphql-ws';
+import { ApolloClient, DocumentNode, HttpLink, InMemoryCache, split } from '@apollo/client';
+import { getMainDefinition } from '@apollo/client/utilities';
 
-const relativeApiUrl = "api/chat/";
+const relativeApiUrl = 'api/chat/';
 
 export function getApolloClient() {
     const wsLink = new GraphQLWsLink(
         createClient({
-            url: "ws://" + window.location.host + "/" + relativeApiUrl,
+            url: 'ws://' + window.location.host + '/' + relativeApiUrl,
         })
     );
     const httpLink = new HttpLink({
@@ -25,5 +25,5 @@ export function getApolloClient() {
 
 function isSubscriptionOperation({ query }: { query: DocumentNode }) {
     const definition = getMainDefinition(query);
-    return definition.kind === "OperationDefinition" && definition.operation === "subscription";
+    return definition.kind === 'OperationDefinition' && definition.operation === 'subscription';
 }

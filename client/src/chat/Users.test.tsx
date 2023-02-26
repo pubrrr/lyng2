@@ -1,9 +1,9 @@
-import React from "react";
-import { act, render, screen } from "@testing-library/react";
-import { useGetNewUsersSubscription, useGetUsersQuery } from "./gql-types";
-import { Users } from "./Users";
+import React from 'react';
+import { act, render, screen } from '@testing-library/react';
+import { useGetNewUsersSubscription, useGetUsersQuery } from './gql-types';
+import { Users } from './Users';
 
-jest.mock("./gql-types");
+jest.mock('./gql-types');
 const mockUseGetUsersQuery = useGetUsersQuery as jest.Mock;
 const mockUseGetNewUsersSubscription = useGetNewUsersSubscription as jest.Mock;
 
@@ -12,18 +12,18 @@ beforeEach(() => {
     mockUseGetNewUsersSubscription.mockReset();
 });
 
-const userName1 = "userName1";
+const userName1 = 'userName1';
 const user1 = {
-    id: "userId1",
+    id: 'userId1',
     name: userName1,
 };
-const userName2 = "userName2";
+const userName2 = 'userName2';
 const user2 = {
-    id: "userId2",
+    id: 'userId2',
     name: userName2,
 };
 
-test("shows users from initial query", () => {
+test('shows users from initial query', () => {
     render(<Users />);
 
     act(() => {
@@ -36,7 +36,7 @@ test("shows users from initial query", () => {
     expect(screen.getByText(userName2)).toBeInTheDocument();
 });
 
-test("shows user sent later from subscription", () => {
+test('shows user sent later from subscription', () => {
     render(<Users />);
 
     act(() => {

@@ -1,6 +1,6 @@
-import { RonDecoder, RonToken } from "./common";
-import { ParserOutput, Token } from "typescript-parsec";
-import { TupleStruct } from "./tupleStruct";
+import { RonDecoder, RonToken } from './common';
+import { ParserOutput, Token } from 'typescript-parsec';
+import { TupleStruct } from './tupleStruct';
 
 export function ronEnum<Variants extends [...NamedValue[]]>(
     ...variantDecoders: EnumVariantDecoders<Variants>
@@ -18,7 +18,7 @@ function decodeEnum<Variants extends [...NamedValue[]]>(
         return {
             successful: false,
             error: {
-                kind: "Error",
+                kind: 'Error',
                 pos: undefined,
                 message: 'Did not find matching enum variant for "' + reassembleTokens(token) + '"',
             },
@@ -36,18 +36,15 @@ function decodeEnum<Variants extends [...NamedValue[]]>(
 
 function reassembleTokens(token: Token<RonToken> | undefined): string {
     if (token === undefined) {
-        return "";
+        return '';
     }
     return token.text + reassembleTokens(token.next);
 }
 
-type EnumVariants<Variants extends NamedValue[]> = Variants extends [
-    TupleStruct<any, any>,
-    ...infer Tail
-]
+type EnumVariants<Variants extends NamedValue[]> = Variants extends [TupleStruct<any, any>, ...infer Tail]
     ? Tail extends NamedValue[]
         ? Variants[0] | EnumVariants<Tail>
-        : "Enum variant tail invalid"
+        : 'Enum variant tail invalid'
     : never;
 
 type EnumVariantDecoders<V extends [...NamedValue[]]> = {

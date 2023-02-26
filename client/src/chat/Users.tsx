@@ -1,7 +1,7 @@
-import { useGetNewUsersSubscription, useGetUsersQuery, User } from "./gql-types";
-import Typography from "@mui/material/Typography";
-import { Box, List, ListItem, ListItemText } from "@mui/material";
-import { useState } from "react";
+import { useGetNewUsersSubscription, useGetUsersQuery, User } from './gql-types';
+import Typography from '@mui/material/Typography';
+import { Box, List, ListItem, ListItemText } from '@mui/material';
+import { useState } from 'react';
 
 function useUsers() {
     const [users, setUsers] = useState<User[]>([]);
@@ -30,7 +30,7 @@ export function Users() {
 
     return (
         <Box sx={{ p: 2 }}>
-            <Typography variant={"overline"}>Users:</Typography>
+            <Typography variant={'overline'}>Users:</Typography>
             <List>
                 {users.map((user) => (
                     <ListItem key={user.id} disablePadding>

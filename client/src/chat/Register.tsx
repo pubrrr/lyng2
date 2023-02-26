@@ -1,9 +1,9 @@
-import { FormEvent, useRef } from "react";
-import { useRegisterMutation } from "./gql-types";
-import Box from "@mui/material/Box";
-import { CircularProgress, Fab, InputAdornment, TextField, Typography } from "@mui/material";
-import { AccountCircle, Send } from "@mui/icons-material";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { FormEvent, useRef } from 'react';
+import { useRegisterMutation } from './gql-types';
+import Box from '@mui/material/Box';
+import { CircularProgress, Fab, InputAdornment, TextField, Typography } from '@mui/material';
+import { AccountCircle, Send } from '@mui/icons-material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 export function Register(props: { onSuccess: () => void }) {
     const input = useRef<HTMLInputElement>(null);
@@ -35,20 +35,20 @@ export function Register(props: { onSuccess: () => void }) {
     };
 
     return (
-        <Box component="form" onSubmit={onSubmit} sx={{ mt: 1 }}>
+        <Box component='form' onSubmit={onSubmit} sx={{ mt: 1 }}>
             <TextField
-                label="Enter your name"
-                id="userName"
+                label='Enter your name'
+                id='userName'
                 inputRef={input}
                 InputProps={{
                     startAdornment: (
-                        <InputAdornment position="start">
+                        <InputAdornment position='start'>
                             <AccountCircle />
                         </InputAdornment>
                     ),
                 }}
             />
-            <Fab color="primary" type={"submit"}>
+            <Fab color='primary' type={'submit'}>
                 <Send />
             </Fab>
         </Box>

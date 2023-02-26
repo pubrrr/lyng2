@@ -1,18 +1,18 @@
-import useWebSocket, { ReadyState } from "react-use-websocket";
-import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
-import App from "./App";
-import Editor from "./Editor";
-import LostConnection from "./LostConnection";
-import { MemoryRouter } from "react-router-dom";
-import { ChatApp } from "./chat";
+import useWebSocket, { ReadyState } from 'react-use-websocket';
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import App from './App';
+import Editor from './Editor';
+import LostConnection from './LostConnection';
+import { MemoryRouter } from 'react-router-dom';
+import { ChatApp } from './chat';
 
-jest.mock("react-use-websocket");
+jest.mock('react-use-websocket');
 const mockUseWebSocket = useWebSocket as jest.Mock;
-jest.mock("./Editor");
-jest.mock("./LostConnection");
+jest.mock('./Editor');
+jest.mock('./LostConnection');
 
-jest.mock("./chat");
+jest.mock('./chat');
 const mockChatApp = ChatApp as jest.Mock;
 
 beforeEach(() => {
@@ -29,10 +29,10 @@ function renderApp() {
 }
 
 function goToEditor() {
-    fireEvent.click(screen.getByText("Lyng"));
+    fireEvent.click(screen.getByText('Lyng'));
 }
 
-test("initially renders loading screen", () => {
+test('initially renders loading screen', () => {
     mockUseWebSocket.mockReturnValue({ readyState: ReadyState.CONNECTING });
 
     renderApp();
@@ -42,7 +42,7 @@ test("initially renders loading screen", () => {
     expect(loadingElement).toBeInTheDocument();
 });
 
-test("changes to editor when websocket connected", () => {
+test('changes to editor when websocket connected', () => {
     mockUseWebSocket.mockReturnValue({ readyState: ReadyState.OPEN });
 
     renderApp();
@@ -51,7 +51,7 @@ test("changes to editor when websocket connected", () => {
     expect(Editor).toBeCalled();
 });
 
-test("changes to lost connection when websocket connection terminates", () => {
+test('changes to lost connection when websocket connection terminates', () => {
     mockUseWebSocket.mockReturnValue({ readyState: ReadyState.CLOSED });
 
     renderApp();
@@ -60,10 +60,10 @@ test("changes to lost connection when websocket connection terminates", () => {
     expect(LostConnection).toBeCalled();
 });
 
-test("should change to chat app", () => {
+test('should change to chat app', () => {
     renderApp();
 
-    fireEvent.click(screen.getByText("Chat"));
+    fireEvent.click(screen.getByText('Chat'));
 
     expect(mockChatApp).toHaveBeenCalled();
 });
