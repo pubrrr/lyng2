@@ -129,7 +129,7 @@ jobs:
             ghcr.io/pubrrr/lyng2
           tags: |
             type=ref,event=branch
-      - run: "echo ${{ steps.meta.outputs.tags[0] }}"
+      - run: "echo ${{ steps.meta.outputs.tags }}"
       - name: Wait for Docker image
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
