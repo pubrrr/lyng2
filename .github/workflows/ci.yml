@@ -103,7 +103,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' && !contains(env.BRANCH, 'dependabot') }}
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=registry,ref=ghcr.io/pubrrr/lyng2:latest
           cache-to: type=inline
