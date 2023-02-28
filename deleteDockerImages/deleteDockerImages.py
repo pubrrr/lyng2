@@ -54,6 +54,7 @@ if __name__ == "__main__":
                       'Accept': github_api_accept,
                       'X-GitHub-Api-Version': github_api_version})
 
+    print(s.get(f'https://api.github.com/orgs/pubrrr/packages?package_type=container'))
     print(s.get(f'https://api.github.com/user/packages/container'))
     print(f'https://api.github.com/user/packages/container/{args.container}/versions')
     print(s.get(f'https://api.github.com/user/packages/container/{args.container}/versions'))
