@@ -54,8 +54,11 @@ if __name__ == "__main__":
                       'Accept': github_api_accept,
                       'X-GitHub-Api-Version': github_api_version})
 
-    r = s.get(f'https://api.github.com/user/packages/'
-              f'container/{args.container}/versions')
+    print(s.get(f'https://api.github.com/user/packages/container'))
+    print(f'https://api.github.com/user/packages/container/{args.container}/versions')
+    print(s.get(f'https://api.github.com/user/packages/container/{args.container}/versions'))
+
+    r = s.get(f'https://api.github.com/user/packages/container/{args.container}/versions')
     versions = r.json()
     if args.verbose:
         reset = datetime.fromtimestamp(int(r.headers["x-ratelimit-reset"]))
