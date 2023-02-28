@@ -1,0 +1,17 @@
+name: Lyng2
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  CI: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Delete images
+        run: python3 deleteDockerImages.py --dry-run --container pubrrr/lyng2 -v
