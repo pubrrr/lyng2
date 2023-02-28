@@ -1,17 +1,23 @@
 name: Lyng2
 
 on:
+#  schedule:
+#    - cron:  '0 10 * * *'
   push:
-  pull_request:
-
-env:
-  CARGO_TERM_COLOR: always
-  CI: true
 
 jobs:
-  rust:
+  deleteDockerImages:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: setup python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: install python packages
+        run: |
+          cd deleteDockerImages
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
       - name: Delete images
-        run: python3 deleteDockerImages.py --dry-run --container pubrrr/lyng2 -v
+        run: GHCR_TOKEN=${{ secrets.GITHUB_TOKEN }} python3 deleteDockerImages/deleteDockerImages.py --dry-run --container pubrrr/lyng2 -v

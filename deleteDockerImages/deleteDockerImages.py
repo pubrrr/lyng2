@@ -2,7 +2,6 @@
 # PYTHON_ARGCOMPLETE_OK
 import argparse
 import dateutil.parser
-import getpass
 import os
 import requests
 from datetime import datetime, timedelta
@@ -45,9 +44,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.token:
-        token = getpass.getpass('Enter Token: ')
-    elif 'GHCR_TOKEN' in os.environ:
+    if 'GHCR_TOKEN' in os.environ:
         token = os.environ['GHCR_TOKEN']
     else:
         raise ValueError('missing authentication token')
