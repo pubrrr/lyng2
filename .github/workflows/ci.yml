@@ -103,7 +103,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          push: ${{ github.event_name != 'pull_request' && !contains(env.BRANCH, 'dependabot') }}
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=registry,ref=ghcr.io/pubrrr/lyng2:latest
           cache-to: type=inline
@@ -121,6 +121,14 @@ jobs:
         run: cd tests && npm ci
       - name: Install Playwright Browsers
         run: cd tests && npx playwright install --with-deps
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: |
+            ghcr.io/pubrrr/lyng2
+          tags: |
+            type=ref,event=branch
       - name: Wait for Docker image
         uses: lewagon/wait-on-check-action@v1.3.1
         with:
@@ -128,7 +136,7 @@ jobs:
           check-name: 'Build Docker image'
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Start Lyng2 Docker container
-        run: "docker run -p 3000:80 -d ghcr.io/pubrrr/lyng2:${GITHUB_REF##*/}"
+        run: "docker run -p 3000:80 -d ${{ steps.meta.outputs.tags }}"
       - name: Run Playwright tests
         run: cd tests && BASE_URL=http://localhost:3000 npx playwright test
       - uses: actions/upload-artifact@v3
