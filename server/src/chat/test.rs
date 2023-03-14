@@ -6,8 +6,15 @@ use futures_lite::future::poll_once;
 use futures_util::{Stream, StreamExt};
 
 use crate::chat::auth::AuthUser;
-use crate::chat::{build_schema, Schema};
+use crate::chat::repository::InMemoryRepository;
+use crate::chat::Schema;
 use crate::from_json;
+
+type TestSchema = Schema<InMemoryRepository>;
+
+fn build_schema() -> TestSchema {
+    crate::chat::build_schema::<InMemoryRepository>()
+}
 
 #[tokio::test]
 async fn test_register_user() {
@@ -168,7 +175,7 @@ mod send_messages {
         assert_eq!(None, response);
     }
 
-    async fn send_message_as_user(schema: Schema, user: &str) -> Option<Response> {
+    async fn send_message_as_user(schema: TestSchema, user: &str) -> Option<Response> {
         let request =
             Request::from("subscription { getNewMessages { message,  user { id, name } } }")
                 .data(auth_user("User#0".to_string()));
@@ -236,7 +243,7 @@ fn assert_missing_authentication(response: Response) {
     )
 }
 
-async fn register_user(schema: &Schema) -> Response {
+async fn register_user(schema: &TestSchema) -> Response {
     schema
         .execute("mutation { register(name:\"user name\") { id, name } }")
         .await
